@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Custom utility classes untuk warna dinamis brand dari CSS variable --brand-primary */
+.bg-brand {
+  background-color: var(--brand-primary, #B87A3A);
+}
+
+.text-brand {
+  color: var(--brand-primary, #B87A3A);
+}
+
+.border-brand {
+  border-color: var(--brand-primary, #B87A3A);
+}
+
+.focus\:border-brand:focus {
+  border-color: var(--brand-primary, #B87A3A);
+}
+
+.focus\:ring-brand:focus {
+  --tw-ring-color: var(--brand-primary, #B87A3A);
+}
