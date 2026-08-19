@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
 
 export async function middleware(request) {
-  // 1. Get hostname without port
-  const hostname = request.nextUrl.hostname || (request.headers.get('host') || '').split(':')[0];
+  // 1. Get hostname without port from Host / X-Forwarded-Host header
+  const rawHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.hostname || '';
+  const hostname = rawHost.split(':')[0].trim();
 
   const apiBaseUrl = process.env.API_BASE_URL_INTERNAL || 'http://localhost:9090';
 
   try {
     // 2. Fetch brand by domain
+    console.log('[Middleware] Fetching brand for hostname:', hostname);
     const res = await fetch(`${apiBaseUrl}/api/public/brand?domain=${encodeURIComponent(hostname)}`, {
       headers: {
         'Accept': 'application/json',
       },
-      // Short cache or no-store in middleware
       cache: 'no-store'
     });
+    console.log('[Middleware] Brand fetch status:', res.status, 'for hostname:', hostname);
 
     if (res.status === 404) {
       // 3. Brand not found -> rewrite to /brand-not-found
