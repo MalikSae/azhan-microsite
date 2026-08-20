@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { BrandProvider } from '@/context/BrandContext';
 import { PortalAuthProvider } from '@/context/PortalAuthContext';
+import PortalMobileShell from '@/components/PortalMobileShell';
 
 export async function generateMetadata() {
   const headerList = await headers();
@@ -30,9 +31,7 @@ export default async function PortalLayout({ children }) {
   return (
     <BrandProvider value={brandContextValue}>
       <PortalAuthProvider>
-        <div className="min-h-screen bg-neutral-50 flex flex-col font-body">
-          {children}
-        </div>
+        <PortalMobileShell>{children}</PortalMobileShell>
       </PortalAuthProvider>
     </BrandProvider>
   );

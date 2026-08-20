@@ -1,426 +1,93 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useId, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useBrand } from '@/context/BrandContext';
 import { usePortalAuth } from '@/context/PortalAuthContext';
 import { getMyBooking, listMyPayments } from '@/lib/portalApi';
 import Badge from '@/components/ui/Badge';
 
-const formatRupiah = (angka) => {
-  if (angka === undefined || angka === null || isNaN(angka)) return 'Rp 0';
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(angka);
-};
-
-const formatTanggal = (dateStr) => {
-  if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-};
-
-const PROGRESS_ITEMS = [
-  { key: 'progress_paspor', label: 'Dokumen Paspor' },
-  { key: 'progress_visa', label: 'Visa Umroh' },
-  { key: 'progress_tiket', label: 'Tiket Pesawat' },
-  { key: 'progress_hotel', label: 'Booking Hotel Makkah/Madinah' },
-  { key: 'progress_land_arrangement', label: 'Land Arrangement (LA)' },
-  { key: 'progress_manasik', label: 'Bimbingan Manasik' },
-  { key: 'progress_siskopatuh', label: 'Pendaftaran Siskopatuh' },
-  { key: 'progress_vaksin_meningitis', label: 'Vaksin Meningitis' },
+const rupiah = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value) || 0);
+const tanggal = (value) => value ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(value)) : '-';
+const progressItems = [
+  ['progress_paspor', 'Dokumen Paspor'], ['progress_visa', 'Visa Umroh'], ['progress_tiket', 'Tiket Pesawat'],
+  ['progress_hotel', 'Booking Hotel Makkah/Madinah'], ['progress_land_arrangement', 'Land Arrangement'],
+  ['progress_manasik', 'Bimbingan Manasik'], ['progress_siskopatuh', 'Pendaftaran Siskopatuh'],
+  ['progress_vaksin_meningitis', 'Vaksin Meningitis'],
 ];
+
+function CollapsibleSection({ title, description, summary, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
+  return <section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+    <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls={id} className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand">
+      <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-neutral-900">{title}</span>{open ? <span className="mt-0.5 block text-xs leading-5 text-neutral-500">{description}</span> : <span className="mt-0.5 block truncate text-xs text-neutral-500">{summary}</span>}</span>
+      <svg className={`h-5 w-5 shrink-0 text-neutral-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
+    </button>
+    {open && <div id={id} className="border-t border-neutral-100 px-4 py-4">{children}</div>}
+  </section>;
+}
 
 export default function PortalBookingDetailPage() {
   const router = useRouter();
-  const params = useParams();
-  const bookingId = params?.id;
-
+  const { id } = useParams();
   const { brandName, brandLogo } = useBrand();
   const { jamaah, isLoading: authLoading } = usePortalAuth();
-
   const [booking, setBooking] = useState(null);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState(null);
+  const [error, setError] = useState('');
 
+  useEffect(() => { if (!authLoading && !jamaah) router.replace('/portal/login'); }, [authLoading, jamaah, router]);
   useEffect(() => {
-    if (!authLoading && !jamaah) {
-      router.push('/portal/login');
-    }
-  }, [authLoading, jamaah, router]);
+    if (!jamaah || !id) return;
+    Promise.all([getMyBooking(id), listMyPayments(id).catch(() => [])])
+      .then(([bookingData, paymentData]) => { setBooking(bookingData); setPayments(paymentData || []); })
+      .catch((err) => setError(err.message || 'Booking tidak ditemukan'))
+      .finally(() => setLoading(false));
+  }, [jamaah, id]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!bookingId) return;
-      try {
-        setLoading(true);
-        setErrorMessage(null);
-        const [bData, pData] = await Promise.all([
-          getMyBooking(bookingId),
-          listMyPayments(bookingId).catch(() => []),
-        ]);
-        setBooking(bData);
-        setPayments(pData || []);
-      } catch (err) {
-        setErrorMessage(err.message || 'Booking tidak ditemukan');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (jamaah && bookingId) {
-      fetchData();
-    }
-  }, [jamaah, bookingId]);
+  if (authLoading || loading) return <div className="flex min-h-[70vh] items-center justify-center text-sm text-neutral-500">Memuat detail booking...</div>;
+  if (error || !booking) return <div className="flex min-h-[70vh] items-center justify-center px-4"><div className="w-full rounded-2xl border border-neutral-200 bg-white p-6 text-center"><h2 className="font-bold text-neutral-900">Booking Tidak Ditemukan</h2><p className="mt-1 text-xs text-neutral-500">{error || 'Data ini tidak tersedia untuk akun Anda.'}</p><Link href="/portal" className="mt-4 inline-flex rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white">Kembali ke Beranda</Link></div></div>;
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
-  const fullLogoUrl = brandLogo && brandLogo.startsWith('/') ? `${apiBaseUrl}${brandLogo}` : brandLogo;
+  const logoUrl = brandLogo?.startsWith('/') ? `${apiBaseUrl}${brandLogo}` : brandLogo;
+  const confirmedPayments = payments.filter((item) => item.status === 'confirmed');
+  const paid = confirmedPayments.reduce((sum, item) => sum + Number(item.jumlah || 0), 0);
+  const remaining = Math.max(0, Number(booking.total_harga || 0) - paid);
+  const completedProgress = progressItems.filter(([key]) => Boolean(booking[key])).length;
+  const equipmentGiven = booking.perlengkapan_status === 'sudah_diberikan';
 
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-neutral-300 border-t-neutral-800 rounded-full animate-spin" />
-          <p className="text-xs text-neutral-500 font-medium">Memuat detail booking...</p>
-        </div>
-      </div>
-    );
-  }
+  return <div className="min-h-dvh">
+    <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur">
+      <div className="flex h-16 items-center justify-between gap-3 px-4"><Link href="/portal/pembayaran" className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-600"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" /></svg>Kembali</Link>{logoUrl ? <img src={logoUrl} alt={brandName} className="max-h-8 max-w-[130px] object-contain" /> : <span className="text-xs font-bold text-neutral-800">{brandName}</span>}</div>
+    </header>
 
-  if (errorMessage || !booking) {
-    return (
-      <div className="min-h-screen flex flex-col justify-center items-center p-4">
-        <div className="bg-white p-6 rounded-2xl border border-neutral-200 text-center max-w-md shadow-xs">
-          <div className="w-12 h-12 rounded-full bg-danger-100 text-danger-600 flex items-center justify-center mx-auto mb-3">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <h2 className="text-base font-bold text-neutral-900 mb-1">Booking Tidak Ditemukan</h2>
-          <p className="text-xs text-neutral-500 mb-4">
-            Data booking ini tidak tersedia atau bukan milik akun Anda.
-          </p>
-          <Link
-            href="/portal"
-            className="inline-flex px-4 py-2 rounded-xl bg-brand text-white text-xs font-semibold shadow-xs"
-          >
-            Kembali ke Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
+    <main className="space-y-3 px-4 py-4">
+      <div className="rounded-2xl bg-neutral-900 p-4 text-white"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Invoice #INV-{String(booking.id).padStart(5, '0')}</p><h1 className="mt-1 truncate text-lg font-bold">{booking.jadwal_nama}</h1><p className="mt-1 text-xs text-neutral-300">{tanggal(booking.berangkat_tanggal)}</p></div><Badge variant={booking.status === 'lunas' ? 'success' : 'warning'}>{booking.status.toUpperCase()}</Badge></div></div>
 
-  const totalTerbayar = payments
-    .filter((p) => p.status === 'confirmed')
-    .reduce((sum, p) => sum + (p.jumlah || 0), 0);
+      <CollapsibleSection title="Informasi Booking" description="Informasi paket, kamar, dan jamaah terdaftar." summary={`${tanggal(booking.berangkat_tanggal)} · Kamar ${booking.room_type}`}>
+        <dl className="grid gap-3"><div className="rounded-xl bg-neutral-50 p-3"><dt className="text-xs text-neutral-400">Tanggal berangkat</dt><dd className="mt-1 text-sm font-bold text-neutral-800">{tanggal(booking.berangkat_tanggal)}</dd></div><div className="grid grid-cols-2 gap-3"><div className="rounded-xl bg-neutral-50 p-3"><dt className="text-xs text-neutral-400">Tipe kamar</dt><dd className="mt-1 text-sm font-bold text-neutral-800">Kamar {booking.room_type}</dd></div><div className="rounded-xl bg-neutral-50 p-3"><dt className="text-xs text-neutral-400">Jamaah</dt><dd className="mt-1 truncate text-sm font-bold text-neutral-800">{booking.nama_jamaah}</dd></div></div></dl>
+      </CollapsibleSection>
 
-  const sisaTagihan = Math.max(0, (booking.total_harga || 0) - totalTerbayar);
+      <CollapsibleSection title="Progress Kesiapan" description="Status dokumen dan fasilitas keberangkatan." summary={`${completedProgress} dari ${progressItems.length} tahapan selesai`} defaultOpen>
+        <div className="mb-4"><div className="flex items-center justify-between text-xs"><span className="font-semibold text-neutral-600">Kelengkapan</span><span className="font-bold text-brand">{completedProgress}/{progressItems.length}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100"><div className="h-full rounded-full bg-brand" style={{ width: `${(completedProgress / progressItems.length) * 100}%` }} /></div></div>
+        <div className="space-y-2">{progressItems.map(([key, label]) => { const ready = Boolean(booking[key]); return <div key={key} className={`flex items-center justify-between rounded-xl border px-3 py-3 ${ready ? 'border-success-200 bg-success-50' : 'border-neutral-200 bg-neutral-50'}`}><span className={`text-xs font-semibold ${ready ? 'text-success-800' : 'text-neutral-600'}`}>{label}</span><span className={`text-sm font-bold ${ready ? 'text-success-700' : 'text-neutral-400'}`}>{ready ? '✓' : '—'}</span></div>; })}</div>
+      </CollapsibleSection>
 
-  return (
-    <div className="min-h-screen pb-16">
-      {/* Header */}
-      <header className="bg-white border-b border-neutral-200 sticky top-0 z-20 shadow-xs">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/portal" className="inline-flex items-center gap-1 text-xs font-semibold text-neutral-500 hover:text-neutral-900 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-              </svg>
-              <span>Kembali</span>
-            </Link>
-            <span className="text-neutral-300">|</span>
-            <span className="text-xs font-bold text-neutral-900">
-              Invoice #INV-{String(booking.id).padStart(5, '0')}
-            </span>
-          </div>
+      <CollapsibleSection title="Perlengkapan" description="Status penyerahan perlengkapan ibadah." summary={equipmentGiven ? `Sudah diberikan${booking.perlengkapan_tanggal ? ` · ${tanggal(booking.perlengkapan_tanggal)}` : ''}` : 'Belum diberikan'}>
+        <div className={`rounded-xl border p-4 ${equipmentGiven ? 'border-success-200 bg-success-50' : 'border-neutral-200 bg-neutral-50'}`}><p className={`text-sm font-bold ${equipmentGiven ? 'text-success-800' : 'text-neutral-700'}`}>{equipmentGiven ? '✓ Perlengkapan sudah diberikan' : 'Perlengkapan belum diberikan'}</p>{equipmentGiven && booking.perlengkapan_tanggal && <p className="mt-1 text-xs text-success-700">Diterima pada {tanggal(booking.perlengkapan_tanggal)}</p>}</div>
+      </CollapsibleSection>
 
-          <Link href="/portal" className="hover:opacity-90 transition-opacity">
-            {fullLogoUrl ? (
-              <img src={fullLogoUrl} alt={brandName} className="h-7 w-auto object-contain" />
-            ) : (
-              <span className="text-xs font-bold text-neutral-800">{brandName}</span>
-            )}
-          </Link>
-        </div>
-      </header>
+      <CollapsibleSection title="Rincian Biaya" description="Harga paket, add-on, diskon, dan total invoice." summary={`Total ${rupiah(booking.total_harga)}`}>
+        <div className="space-y-3 text-xs"><div className="flex justify-between gap-3 border-b border-neutral-100 pb-3"><span className="text-neutral-600">Harga paket ({booking.room_type})</span><span className="font-bold text-neutral-900">{rupiah(booking.harga_dasar)}</span></div>{booking.addons?.map((addon) => <div key={addon.id} className="flex justify-between gap-3"><span className="text-neutral-600">{addon.nama || addon.name}</span><span className="font-semibold text-neutral-900">{rupiah(addon.nominal)}</span></div>)}{Number(booking.diskon) > 0 && <div className="flex justify-between gap-3 text-danger-700"><span>Diskon {booking.diskon_keterangan ? `(${booking.diskon_keterangan})` : ''}</span><span className="font-bold">− {rupiah(booking.diskon)}</span></div>}<div className="flex justify-between gap-3 border-t border-neutral-200 pt-3 text-sm"><span className="font-bold text-neutral-900">Total tagihan</span><span className="font-extrabold text-neutral-900">{rupiah(booking.total_harga)}</span></div></div>
+      </CollapsibleSection>
 
-      {/* Main Content */}
-      <main className="px-4 pt-4 space-y-4">
-        {/* Banner Paket */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-3">
-          <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3">
-            <div>
-              <span className="text-xs font-mono text-neutral-400 block">Jadwal Keberangkatan</span>
-              <h1 className="text-xl font-extrabold text-neutral-900">
-                {booking.jadwal_nama}
-              </h1>
-            </div>
-            <div>
-              <Badge variant={booking.status === 'lunas' ? 'success' : 'warning'}>
-                {booking.status.toUpperCase()}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 text-xs pt-1">
-            <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200">
-              <span className="text-neutral-400 block">Tanggal Berangkat</span>
-              <span className="font-bold text-neutral-800 text-sm">
-                {formatTanggal(booking.berangkat_tanggal)}
-              </span>
-            </div>
-            <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200">
-              <span className="text-neutral-400 block">Tipe Kamar</span>
-              <span className="font-bold text-neutral-800 text-sm">Kamar {booking.room_type}</span>
-            </div>
-            <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200">
-              <span className="text-neutral-400 block">Nama Jamaah</span>
-              <span className="font-bold text-neutral-800 text-sm">{booking.nama_jamaah}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 1: Progress Keberangkatan */}
-        <section className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-4">
-          <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3">
-            <div>
-              <h2 className="text-base font-bold text-neutral-900">Progress Kesiapan Keberangkatan</h2>
-              <p className="text-xs text-neutral-500">
-                Status verifikasi kelengkapan dokumen dan fasilitas keberangkatan Anda.
-              </p>
-            </div>
-            <div>
-              {booking.siap_berangkat ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success-100 text-success-800 text-xs font-bold">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  <span>SIAP BERANGKAT</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning-100 text-warning-800 text-xs font-bold">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>PERSIAPAN BERJALAN</span>
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 pt-1">
-            {PROGRESS_ITEMS.map((p) => {
-              const isReady = Boolean(booking[p.key]);
-              return (
-                <div
-                  key={p.key}
-                  className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
-                    isReady
-                      ? 'border-success-200 bg-success-50/60 shadow-2xs'
-                      : 'border-neutral-200 bg-neutral-50'
-                  }`}
-                >
-                  <span className={`text-xs font-semibold ${isReady ? 'text-success-900' : 'text-neutral-800'}`}>
-                    {p.label}
-                  </span>
-                  {isReady ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-5 h-5 text-success-600 shrink-0"
-                      aria-label="Sudah Siap"
-                    >
-                      <path d="M21.801 10A10 10 0 1 1 17 3.335" />
-                      <path d="m9 11 3 3L22 4" />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-5 h-5 text-neutral-400 shrink-0"
-                      aria-label="Belum Siap"
-                    >
-                      <path d="M12 2v4" />
-                      <path d="m16.2 7.8 2.9-2.9" />
-                      <path d="M18 12h4" />
-                      <path d="m16.2 16.2 2.9 2.9" />
-                      <path d="M12 18v4" />
-                      <path d="m4.9 19.1 2.9-2.9" />
-                      <path d="M2 12h4" />
-                      <path d="m4.9 4.9 2.9 2.9" />
-                    </svg>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Section: Perlengkapan */}
-        <section className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-4">
-          <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3">
-            <div>
-              <h2 className="text-base font-bold text-neutral-900">Perlengkapan</h2>
-              <p className="text-xs text-neutral-500">
-                Status penyerahan perlengkapan ibadah umroh untuk perjalanan Anda.
-              </p>
-            </div>
-            <div className="flex flex-col gap-1">
-              {booking.perlengkapan_status === 'sudah_diberikan' ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success-100 text-success-800 text-xs font-bold">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  <span>SUDAH DIBERIKAN</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-200 text-neutral-600 text-xs font-bold">
-                  BELUM DIBERIKAN
-                </span>
-              )}
-              {booking.perlengkapan_status === 'sudah_diberikan' && booking.perlengkapan_tanggal && (
-                <span className="text-xs text-neutral-500 font-body">
-                  Diterima pada {formatTanggal(booking.perlengkapan_tanggal)}
-                </span>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Section 2: Rincian Tagihan (Invoice Read-Only) */}
-        <section className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-4">
-          <div className="border-b border-neutral-100 pb-3">
-            <h2 className="text-base font-bold text-neutral-900">Rincian Biaya & Invoice</h2>
-            <p className="text-xs text-neutral-500">
-              Rincian harga paket dasar, layanan tambahan (add-ons), dan diskon.
-            </p>
-          </div>
-
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between py-2 border-b border-neutral-100">
-              <span className="text-neutral-600">Harga Paket Dasar ({booking.room_type})</span>
-              <span className="font-semibold text-neutral-900 font-mono">
-                {formatRupiah(booking.harga_dasar)}
-              </span>
-            </div>
-
-            {booking.addons && booking.addons.length > 0 && (
-              <div className="py-1 space-y-1.5 border-b border-neutral-100">
-                <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 block">
-                  Layanan Tambahan (Add-Ons)
-                </span>
-                {booking.addons.map((a) => (
-                  <div key={a.id} className="flex justify-between pl-2 text-neutral-600">
-                    <span>• {a.nama || a.name}</span>
-                    <span className="font-semibold text-neutral-900 font-mono">
-                      {formatRupiah(a.nominal)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {booking.diskon > 0 && (
-              <div className="flex justify-between py-2 border-b border-neutral-100 text-danger-600 font-medium">
-                <span>Potongan / Diskon {booking.diskon_keterangan ? `(${booking.diskon_keterangan})` : ''}</span>
-                <span className="font-semibold font-mono">
-                  - {formatRupiah(booking.diskon)}
-                </span>
-              </div>
-            )}
-
-            <div className="flex justify-between pt-3 text-sm font-extrabold text-neutral-900">
-              <span>Total Tagihan</span>
-              <span className="font-mono text-base">{formatRupiah(booking.total_harga)}</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 3: Riwayat Pembayaran */}
-        <section className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-4">
-          <div className="flex justify-between items-center border-b border-neutral-100 pb-3">
-            <div>
-              <h2 className="text-base font-bold text-neutral-900">Riwayat Pembayaran</h2>
-              <p className="text-xs text-neutral-500">
-                Daftar pembayaran yang telah tercatat dan dikonfirmasi admin.
-              </p>
-            </div>
-          </div>
-
-          {payments.length === 0 ? (
-            <div className="py-6 text-center text-xs text-neutral-400 italic">
-              Belum ada riwayat pembayaran yang tercatat.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-body">
-                <thead>
-                  <tr className="border-b border-neutral-200 text-neutral-400 font-semibold uppercase tracking-wider">
-                    <th className="pb-2.5">Tanggal</th>
-                    <th className="pb-2.5">Metode</th>
-                    <th className="pb-2.5">Jumlah</th>
-                    <th className="pb-2.5 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {payments.map((p) => (
-                    <tr key={p.id} className="text-neutral-800">
-                      <td className="py-2.5">{formatTanggal(p.tanggal)}</td>
-                      <td className="py-2.5 font-medium uppercase">{p.metode}</td>
-                      <td className="py-2.5 font-bold font-mono">{formatRupiah(p.jumlah)}</td>
-                      <td className="py-2.5 text-right">
-                        <Badge variant={p.status === 'confirmed' ? 'success' : 'warning'}>
-                          {p.status.toUpperCase()}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Payment Summary Footer */}
-          <div className="pt-3 border-t border-neutral-100 grid grid-cols-2 gap-3 text-xs">
-            <div className="p-3 bg-success-50 rounded-xl border border-success-200">
-              <span className="text-success-700 block text-xs">Total Terbayar</span>
-              <span className="font-bold text-success-800 text-sm font-mono">
-                {formatRupiah(totalTerbayar)}
-              </span>
-            </div>
-            <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200">
-              <span className="text-neutral-500 block text-xs">Sisa Tagihan</span>
-              <span className="font-bold text-neutral-900 text-sm font-mono">
-                {formatRupiah(sisaTagihan)}
-              </span>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-  );
+      <CollapsibleSection title="Riwayat Pembayaran" description="Transaksi pembayaran dan status konfirmasi." summary={`${payments.length} transaksi · Terbayar ${rupiah(paid)}`}>
+        {payments.length === 0 ? <div className="rounded-xl bg-neutral-50 py-6 text-center text-xs text-neutral-500">Belum ada pembayaran tercatat.</div> : <div className="space-y-2">{payments.map((payment) => <div key={payment.id} className="rounded-xl border border-neutral-200 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold text-neutral-900">{rupiah(payment.jumlah)}</p><p className="mt-1 text-xs text-neutral-500">{tanggal(payment.tanggal)} · {payment.metode || 'Metode tidak tercatat'}</p></div><Badge variant={payment.status === 'confirmed' ? 'success' : 'warning'}>{payment.status.toUpperCase()}</Badge></div></div>)}</div>}
+        <div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl border border-success-200 bg-success-50 p-3"><p className="text-[11px] text-success-700">Total terbayar</p><p className="mt-1 text-sm font-bold text-success-800">{rupiah(paid)}</p></div><div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3"><p className="text-[11px] text-neutral-500">Sisa tagihan</p><p className="mt-1 text-sm font-bold text-neutral-900">{rupiah(remaining)}</p></div></div>
+      </CollapsibleSection>
+    </main>
+  </div>;
 }
