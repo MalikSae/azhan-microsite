@@ -51,10 +51,10 @@ export default function PortalLoginPage() {
   const fullLogoUrl = brandLogo && brandLogo.startsWith('/') ? `${apiBaseUrl}${brandLogo}` : brandLogo;
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8">
+      <div className="w-full">
         {/* Brand Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <Link href="/" className="inline-block mb-4 hover:opacity-90 transition-opacity">
             {fullLogoUrl ? (
               <img 
@@ -77,7 +77,7 @@ export default function PortalLoginPage() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-6 sm:p-8">
+        <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-5">
           {errorMessage && (
             <div className="mb-6 p-4 rounded-xl bg-danger-50 border border-danger-200 text-danger-700 text-sm flex items-start gap-3">
               <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,7 +99,7 @@ export default function PortalLoginPage() {
                 onChange={(e) => setNamaLengkap(e.target.value)}
                 placeholder="Sesuai KTP / Paspor"
                 required
-                className="w-full px-3.5 py-2.5 rounded-lg border border-neutral-300 text-neutral-900 placeholder-neutral-400 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-neutral-300 text-neutral-900 placeholder-neutral-400 text-base focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
               />
             </div>
 
@@ -114,7 +114,7 @@ export default function PortalLoginPage() {
                 onChange={(e) => setIdJamaah(e.target.value.toUpperCase())}
                 placeholder="mis. AS-2608000001"
                 required
-                className="w-full px-3.5 py-2.5 rounded-lg border border-neutral-300 text-neutral-900 placeholder-neutral-400 font-mono uppercase text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-neutral-300 text-neutral-900 placeholder-neutral-400 font-mono uppercase text-base focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
               />
             </div>
 

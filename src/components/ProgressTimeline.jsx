@@ -35,9 +35,9 @@ export default function ProgressTimeline({ booking }) {
   }));
 
   return (
-    <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-6">
+    <section className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-5">
       {/* Header Info */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-neutral-100 pb-4">
+      <div className="flex flex-col gap-3 border-b border-neutral-100 pb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-wider">
@@ -48,7 +48,7 @@ export default function ProgressTimeline({ booking }) {
               #INV-{String(booking.id).padStart(5, '0')}
             </span>
           </div>
-          <h2 className="text-lg sm:text-xl font-extrabold text-neutral-900 leading-tight">
+          <h2 className="text-lg font-extrabold text-neutral-900 leading-tight">
             {booking.jadwal_nama}
           </h2>
           <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1.5">
@@ -60,8 +60,8 @@ export default function ProgressTimeline({ booking }) {
         </div>
       </div>
 
-      {/* DESKTOP TIMELINE (Horizontal, md: and above) */}
-      <div className="hidden md:block pt-2 pb-2">
+      {/* Timeline horizontal sengaja dinonaktifkan: shell selalu berukuran mobile. */}
+      <div className="hidden pt-2 pb-2" aria-hidden="true">
         <div className="grid grid-cols-8 relative items-start">
           {steps.map((step, idx) => {
             const isLast = idx === steps.length - 1;
@@ -110,8 +110,8 @@ export default function ProgressTimeline({ booking }) {
         </div>
       </div>
 
-      {/* MOBILE TIMELINE (Vertical, below md) */}
-      <div className="block md:hidden space-y-0 pt-1">
+      {/* Timeline vertikal dipakai pada seluruh ukuran viewport. */}
+      <div className="block space-y-0 pt-1">
         {steps.map((step, idx) => {
           const isLast = idx === steps.length - 1;
           const nextStep = !isLast ? steps[idx + 1] : null;

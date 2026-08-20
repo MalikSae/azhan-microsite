@@ -5,10 +5,12 @@ import SeatProgressBar from './SeatProgressBar';
 import WhatsAppButton from './WhatsAppButton';
 import Badge from './ui/Badge';
 import ItineraryModal from './ItineraryModal';
+import FacilitiesModal from './FacilitiesModal';
 
 export default function PackageCard({ schedule, brandWhatsapp, brandName, brandLogoUrl }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isItineraryModalOpen, setIsItineraryModalOpen] = useState(false);
+  const [isFacilitiesModalOpen, setIsFacilitiesModalOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [airlineLogoError, setAirlineLogoError] = useState(false);
 
@@ -136,6 +138,11 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
                     {schedule.berangkat_jam} {schedule.berangkat_kode_penerbangan && `• ${schedule.berangkat_kode_penerbangan}`}
                   </div>
                 )}
+                {(schedule.berangkat_bandara_asal || schedule.berangkat_bandara_tujuan) && (
+                  <p className="mt-1 text-[10px] font-medium text-neutral-500">
+                    {schedule.berangkat_bandara_asal || '-'} → {schedule.berangkat_bandara_tujuan || '-'}
+                  </p>
+                )}
               </div>
               {/* Pulang */}
               <div>
@@ -150,6 +157,11 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
                   <div className="mt-0.5 text-neutral-500 pl-5">
                     {schedule.pulang_jam} {schedule.pulang_kode_penerbangan && `• ${schedule.pulang_kode_penerbangan}`}
                   </div>
+                )}
+                {(schedule.pulang_bandara_asal || schedule.pulang_bandara_tujuan) && (
+                  <p className="mt-1 text-[10px] font-medium text-neutral-500">
+                    {schedule.pulang_bandara_asal || '-'} → {schedule.pulang_bandara_tujuan || '-'}
+                  </p>
                 )}
               </div>
             </div>
@@ -285,9 +297,9 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
 
                 {/* 3. Fasilitas */}
                 <button
-                  title="Segera hadir"
-                  disabled
-                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-neutral-200 transition-colors opacity-50 cursor-not-allowed bg-neutral-50"
+                  type="button"
+                  onClick={() => setIsFacilitiesModalOpen(true)}
+                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 transition-colors"
                 >
                   <svg className="w-5 h-5 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                   <span className="text-xs font-medium">Fasilitas</span>
@@ -297,9 +309,9 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
 
                 {/* 7. Compare */}
                 <button
-                  title="Segera hadir"
-                  disabled
-                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-neutral-200 transition-colors opacity-50 cursor-not-allowed bg-neutral-50"
+                  type="button"
+                  onClick={() => window.location.assign(`/compare?paket=${schedule.id}`)}
+                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 transition-colors"
                 >
                   <svg className="w-5 h-5 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
                   <span className="text-xs font-medium">Compare</span>
@@ -374,6 +386,13 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
         itineraryId={schedule.itinerary_id}
         isOpen={isItineraryModalOpen}
         onClose={() => setIsItineraryModalOpen(false)}
+      />
+      <FacilitiesModal
+        packageName={name}
+        includeItems={schedule.include_items}
+        excludeItems={schedule.exclude_items}
+        isOpen={isFacilitiesModalOpen}
+        onClose={() => setIsFacilitiesModalOpen(false)}
       />
     </>
   );

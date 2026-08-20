@@ -1,6 +1,61 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
+:root {
+  color-scheme: light;
+  background: #e2e8f0;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: #e2e8f0;
+}
+
+body {
+  min-height: 100dvh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(255, 255, 255, 0.95), transparent 38rem),
+    #e2e8f0;
+}
+
+.mobile-app-shell {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  min-height: 100dvh;
+  margin-inline: auto;
+  overflow-x: clip;
+  background: #f8fafc;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"],
+input,
+select {
+  min-height: 44px;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--brand-primary, #B87A3A) 45%, white);
+  outline-offset: 2px;
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .mobile-app-shell {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* Custom utility classes untuk warna dinamis brand dari CSS variable --brand-primary */
 .bg-brand {
   background-color: var(--brand-primary, #B87A3A);

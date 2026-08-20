@@ -54,17 +54,17 @@ export default function PackageListClient({ initialSchedules = [], brandWhatsapp
   return (
     <div className="space-y-6">
       {/* Search & Filter Control Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+      <div className="flex flex-col gap-3 p-3.5 bg-white rounded-2xl border border-neutral-200 shadow-xs">
         <div className="flex-1">
           <SearchBar value={searchQuery} onChange={setSearchQuery} />
         </div>
-        <div className="w-full sm:w-64 flex items-center gap-2">
+        <div className="w-full flex items-center gap-2">
           <SortDropdown value={sortBy} onChange={setSortBy} />
         </div>
       </div>
 
       {/* Result Count */}
-      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2 text-xs text-neutral-500 font-medium px-1">
+      <div className="flex justify-between items-center gap-2 text-xs text-neutral-500 font-medium px-1">
         <span>Menampilkan {filteredAndSortedSchedules.length} Paket Umroh</span>
         {searchQuery && (
           <button 
@@ -78,7 +78,7 @@ export default function PackageListClient({ initialSchedules = [], brandWhatsapp
 
       {/* Package Grid */}
       {filteredAndSortedSchedules.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 items-start">
+        <div className="grid grid-cols-1 gap-4 items-start">
           {filteredAndSortedSchedules.map((schedule) => (
             <PackageCard
               key={schedule.id}

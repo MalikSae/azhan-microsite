@@ -14,7 +14,7 @@ export default function ItineraryModal({ itineraryId, isOpen, onClose }) {
         setError(null);
         try {
           const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
-          const res = await fetch(`${baseUrl}/api/itinerary/${itineraryId}`);
+          const res = await fetch(`${baseUrl}/api/itineraries/${itineraryId}`);
           if (!res.ok) {
             throw new Error('Gagal memuat itinerary');
           }
@@ -45,18 +45,19 @@ export default function ItineraryModal({ itineraryId, isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}>
       {/* Modal Card */}
       <div 
-        className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-dropdown relative"
+        className="bg-white rounded-t-3xl shadow-xl w-full max-w-[460px] max-h-[92dvh] flex flex-col overflow-hidden animate-dropdown relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-neutral-200 flex justify-between items-center bg-neutral-50 shrink-0">
+        <div className="px-4 py-3 border-b border-neutral-200 flex justify-between items-center bg-neutral-50 shrink-0">
           <h2 className="text-lg font-bold text-neutral-900">Detail Itinerary</h2>
           <button 
             onClick={onClose}
-            className="text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200 p-1.5 rounded-lg transition-colors"
+            className="text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200 p-2 rounded-xl transition-colors"
+            aria-label="Tutup detail itinerary"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -65,7 +66,7 @@ export default function ItineraryModal({ itineraryId, isOpen, onClose }) {
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto grow scrollbar-hide">
+        <div className="p-4 overflow-y-auto grow overscroll-contain scrollbar-hide">
           {loading && (
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-neutral-500">
               <svg className="w-8 h-8 animate-spin text-brand" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -96,17 +97,17 @@ export default function ItineraryModal({ itineraryId, isOpen, onClose }) {
               {data.days && data.days.length > 0 ? (
                 <div className="space-y-6">
                   {data.days.map((day, idx) => (
-                    <div key={idx} className="relative pl-6 sm:pl-8">
+                    <div key={idx} className="relative pl-6">
                       {/* Timeline Line */}
                       {idx !== data.days.length - 1 && (
-                        <div className="absolute left-2.5 sm:left-3.5 top-8 bottom-[-24px] w-[2px] bg-neutral-200"></div>
+                        <div className="absolute left-2.5 top-8 bottom-[-24px] w-[2px] bg-neutral-200"></div>
                       )}
                       
                       {/* Timeline Dot */}
-                      <div className="absolute left-[3px] sm:left-[5px] top-1 w-4 h-4 rounded-full bg-brand border-4 border-white shadow-sm"></div>
+                      <div className="absolute left-[3px] top-1 w-4 h-4 rounded-full bg-brand border-4 border-white shadow-sm"></div>
                       
                       <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                        <div className="flex flex-col gap-2 mb-3">
                           <h4 className="font-bold text-neutral-800 text-sm">
                             Hari ke-{day.day_number}: {day.title}
                           </h4>
@@ -126,9 +127,9 @@ export default function ItineraryModal({ itineraryId, isOpen, onClose }) {
                             {day.activities.map((act, i) => (
                               <div key={i} className="flex items-start gap-3 text-sm">
                                 <span className="text-xs font-semibold text-brand bg-white border border-brand/20 px-1.5 py-0.5 rounded shrink-0 min-w-[50px] text-center mt-0.5">
-                                  {act.time}
+                                  {act.time || 'Agenda'}
                                 </span>
-                                <p className="text-neutral-700 leading-relaxed">{act.description}</p>
+                                <p className="text-neutral-700 leading-relaxed">{act.text || act.description}</p>
                               </div>
                             ))}
                           </div>

@@ -23,8 +23,8 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang="id" style={{ '--brand-primary': brandColor }} suppressHydrationWarning className={dmSans.variable}>
-      <body className={`antialiased bg-neutral-50 text-neutral-900 min-h-screen ${dmSans.className}`} suppressHydrationWarning>
-        {children}
+      <body className={`antialiased text-neutral-900 min-h-screen ${dmSans.className}`} suppressHydrationWarning>
+        <div className="mobile-app-shell">{children}</div>
       </body>
     </html>
   );

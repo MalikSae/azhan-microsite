@@ -204,15 +204,15 @@ export default function PortalDashboardPage() {
       {/* Main Container */}
       <main className="max-w-5xl mx-auto px-4 pt-6 space-y-6">
         {/* Welcome Greeting Banner */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs flex flex-col justify-between items-start gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-700 text-xs font-mono font-semibold mb-2">
               ID: {jamaah.id_jamaah || `#${jamaah.id}`}
             </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
+            <h1 className="text-xl font-extrabold text-neutral-900 tracking-tight">
               Halo, {jamaah.nama_lengkap}
             </h1>
-            <p className="text-xs sm:text-sm text-neutral-500 mt-1">
+            <p className="text-sm text-neutral-500 mt-1">
               Selamat datang di portal keberangkatan umroh resmi Anda.
             </p>
           </div>
@@ -243,9 +243,9 @@ export default function PortalDashboardPage() {
 
         {/* Section 1: Kelola Dokumen Keberangkatan */}
         <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 border-b border-neutral-100 pb-3">
+          <div className="flex flex-col gap-1 border-b border-neutral-100 pb-3">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-neutral-900">
+              <h2 className="text-base font-bold text-neutral-900">
                 Kelola Dokumen Persyaratan
               </h2>
               <p className="text-xs text-neutral-500">
@@ -254,7 +254,7 @@ export default function PortalDashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+          <div className="grid grid-cols-1 gap-3.5 pt-1">
             {DOKUMEN_ITEMS.map((item) => {
               const doc = dokumenList.find((d) => d.jenis === item.key);
               const isUploaded = Boolean(doc && doc.file_url);
@@ -332,7 +332,7 @@ export default function PortalDashboardPage() {
         {/* Section 2: Booking Keberangkatan Saya */}
         <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-4">
           <div className="border-b border-neutral-100 pb-3">
-            <h2 className="text-base sm:text-lg font-bold text-neutral-900">
+            <h2 className="text-base font-bold text-neutral-900">
               Jadwal & Booking Saya
             </h2>
             <p className="text-xs text-neutral-500">
@@ -352,7 +352,7 @@ export default function PortalDashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div className="grid grid-cols-1 gap-4 pt-1">
               {bookings.map((b) => (
                 <div
                   key={b.id}

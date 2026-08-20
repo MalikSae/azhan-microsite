@@ -159,13 +159,13 @@ export default function PortalBookingDetailPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 pt-6 space-y-6">
+      <main className="px-4 pt-4 space-y-4">
         {/* Banner Paket */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-3">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-neutral-100 pb-3">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-3">
+          <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3">
             <div>
               <span className="text-xs font-mono text-neutral-400 block">Jadwal Keberangkatan</span>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-neutral-900">
+              <h1 className="text-xl font-extrabold text-neutral-900">
                 {booking.jadwal_nama}
               </h1>
             </div>
@@ -176,7 +176,7 @@ export default function PortalBookingDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+          <div className="grid grid-cols-1 gap-3 text-xs pt-1">
             <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200">
               <span className="text-neutral-400 block">Tanggal Berangkat</span>
               <span className="font-bold text-neutral-800 text-sm">
@@ -195,8 +195,8 @@ export default function PortalBookingDetailPage() {
         </div>
 
         {/* Section 1: Progress Keberangkatan */}
-        <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-neutral-100 pb-3">
+        <section className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-4">
+          <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3">
             <div>
               <h2 className="text-base font-bold text-neutral-900">Progress Kesiapan Keberangkatan</h2>
               <p className="text-xs text-neutral-500">
@@ -222,7 +222,7 @@ export default function PortalBookingDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div className="grid grid-cols-1 gap-3 pt-1">
             {PROGRESS_ITEMS.map((p) => {
               const isReady = Boolean(booking[p.key]);
               return (
@@ -281,15 +281,15 @@ export default function PortalBookingDetailPage() {
         </section>
 
         {/* Section: Perlengkapan */}
-        <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-neutral-100 pb-3">
+        <section className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-4">
+          <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3">
             <div>
               <h2 className="text-base font-bold text-neutral-900">Perlengkapan</h2>
               <p className="text-xs text-neutral-500">
                 Status penyerahan perlengkapan ibadah umroh untuk perjalanan Anda.
               </p>
             </div>
-            <div className="flex flex-col sm:items-end gap-1">
+            <div className="flex flex-col gap-1">
               {booking.perlengkapan_status === 'sudah_diberikan' ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success-100 text-success-800 text-xs font-bold">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -312,7 +312,7 @@ export default function PortalBookingDetailPage() {
         </section>
 
         {/* Section 2: Rincian Tagihan (Invoice Read-Only) */}
-        <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-4">
+        <section className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-4">
           <div className="border-b border-neutral-100 pb-3">
             <h2 className="text-base font-bold text-neutral-900">Rincian Biaya & Invoice</h2>
             <p className="text-xs text-neutral-500">
@@ -361,7 +361,7 @@ export default function PortalBookingDetailPage() {
         </section>
 
         {/* Section 3: Riwayat Pembayaran */}
-        <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-4">
+        <section className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs space-y-4">
           <div className="flex justify-between items-center border-b border-neutral-100 pb-3">
             <div>
               <h2 className="text-base font-bold text-neutral-900">Riwayat Pembayaran</h2>
