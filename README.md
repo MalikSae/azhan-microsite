@@ -31,6 +31,10 @@ Situs publik dan portal mandiri jamaah multi-brand berbasis **Next.js (App Route
 - **Detail Booking & Riwayat Pembayaran (`/portal/booking/[id]`)**:
   - Rincian biaya paket, total yang sudah dibayar, dan sisa tagihan.
   - Riwayat riil transaksi pembayaran (DP, cicilan, pelunasan).
+- **Konfirmasi Transfer Manual (`/portal/pembayaran`)**:
+  - Jamaah memilih salah satu rekening resmi yang aktif untuk brandnya.
+  - Form mencatat booking, nominal, tanggal, nama/bank pengirim, dan bukti transfer.
+  - Pengajuan berstatus menunggu sampai dikonfirmasi atau ditolak oleh pusat/admin brand.
 - **Upload & Verifikasi Dokumen (`/portal/booking/[id]`)**:
   - Checklist dokumen wajib (Paspor, Foto Jamaah, KTP/KK, Buku Nikah, Kartu Kuning/Vaksin Meningitis).
   - Upload berkas langsung ke storage backend dengan preview status (Belum Upload, Menunggu Verifikasi, Terverifikasi, Ditolak).
@@ -174,6 +178,8 @@ Endpoint backend utama yang dikonsumsi oleh microsite:
 | `/api/portal/bookings` | `GET` | Daftar booking milik jamaah |
 | `/api/portal/bookings/{id}` | `GET` | Detail booking, paket, & hotel |
 | `/api/portal/bookings/{id}/payments` | `GET` | Riwayat pembayaran & mutasi transaksi |
+| `/api/portal/bank-accounts` | `GET` | Rekening transfer aktif untuk brand jamaah |
+| `/api/portal/bookings/{id}/payments` | `POST` | Kirim konfirmasi transfer manual beserta bukti |
 | `/api/portal/dokumen` | `GET` / `POST` | Daftar & perbarui status dokumen jamaah |
 | `/api/portal/media/upload` | `POST` | Upload file fisik dokumen jamaah |
 

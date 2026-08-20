@@ -76,6 +76,30 @@ export async function listMyPayments(bookingId) {
   return data;
 }
 
+export async function listPaymentAccounts() {
+  const res = await fetch(`${API_BASE_URL}/api/portal/bank-accounts`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal mengambil rekening tujuan');
+  return data;
+}
+
+export async function uploadPortalMedia(file) {
+  const token = getPortalToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${API_BASE_URL}/api/portal/media/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Bukti transfer gagal diunggah');
+  return data.url;
+}
+
+export async function submitPaymentConfirmation(bookingId, payload) {
+  const res = await fetch(`${API_BASE_URL}/api/portal/bookings/${bookingId}/payments`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(payload) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Konfirmasi pembayaran gagal dikirim');
+  return data;
+}
+
 export async function listMyDokumen() {
   const res = await fetch(`${API_BASE_URL}/api/portal/dokumen`, {
     headers: authHeaders(),
