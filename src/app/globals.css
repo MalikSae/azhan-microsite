@@ -3,21 +3,17 @@
 
 :root {
   color-scheme: light;
-  background: #e2e8f0;
 }
 
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #e2e8f0;
 }
 
 body {
   min-height: 100dvh;
   margin: 0;
-  background:
-    radial-gradient(circle at 50% -10%, rgba(255, 255, 255, 0.95), transparent 38rem),
-    #e2e8f0;
+  background-color: #f8fafc;
 }
 
 .mobile-app-shell {
@@ -38,22 +34,9 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
-button,
-[role="button"],
-input,
-select {
-  min-height: 44px;
-}
-
 :focus-visible {
   outline: 3px solid color-mix(in srgb, var(--brand-primary, #B87A3A) 45%, white);
   outline-offset: 2px;
-}
-
-@supports (padding: env(safe-area-inset-bottom)) {
-  .mobile-app-shell {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
 }
 
 /* Custom utility classes untuk warna dinamis brand dari CSS variable --brand-primary */
@@ -61,8 +44,22 @@ select {
   background-color: var(--brand-primary, #B87A3A);
 }
 
+.bg-brand-light {
+  background-color: color-mix(in srgb, var(--brand-primary, #B87A3A) 6%, transparent);
+}
+
+.bg-brand-soft {
+  background-color: color-mix(in srgb, var(--brand-primary, #B87A3A) 5%, white);
+}
+
 .text-brand {
   color: var(--brand-primary, #B87A3A);
+}
+
+/* Warna brand yang selalu terang dan terbaca di atas background gelap (Hero) */
+.text-brand-on-dark {
+  color: color-mix(in srgb, var(--brand-primary, #B87A3A) 50%, #ffffff);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
 }
 
 .border-brand {
@@ -114,4 +111,36 @@ select {
 
 .animate-dropdown {
   animation: dropdown-fade-in 0.15s ease-out forwards;
+}
+
+/* Animasi Berkesinambungan untuk Tag Promo */
+@keyframes promo-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 5px rgba(217, 119, 6, 0);
+  }
+}
+
+.animate-promo-pulse {
+  animation: promo-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes icon-bounce-glow {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-2.5px) rotate(-6deg);
+  }
+  75% {
+    transform: translateY(-1px) rotate(6deg);
+  }
+}
+
+.animate-icon-bounce {
+  animation: icon-bounce-glow 1.2s ease-in-out infinite;
 }

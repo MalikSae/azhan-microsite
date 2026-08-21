@@ -1,4 +1,4 @@
-import { headers } from 'next/headers';
+﻿import { headers } from 'next/headers';
 import { DM_Sans } from 'next/font/google';
 import './globals.css';
 
@@ -23,8 +23,8 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang="id" style={{ '--brand-primary': brandColor }} suppressHydrationWarning className={dmSans.variable}>
-      <body className={`antialiased text-neutral-900 min-h-screen ${dmSans.className}`} suppressHydrationWarning>
-        <div className="mobile-app-shell">{children}</div>
+      <body className={`antialiased text-neutral-900 min-h-screen bg-neutral-50 ${dmSans.className}`} suppressHydrationWarning>
+        {children}
       </body>
     </html>
   );
