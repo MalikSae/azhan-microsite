@@ -53,13 +53,13 @@ export default function DokumenPage() {
   const completed = items.filter(([key]) => documents.some((doc) => doc.jenis === key && doc.file_url)).length;
 
   return (
-    <main className="space-y-4 px-4 py-5">
+    <main className="portal-page space-y-5">
       <section className="rounded-2xl border border-neutral-200 bg-white p-4">
         <div className="flex items-center justify-between"><div><h2 className="font-bold text-neutral-900">Kelengkapan Dokumen</h2><p className="mt-1 text-xs text-neutral-500">Lengkapi untuk proses visa dan keberangkatan.</p></div><span className="text-lg font-bold text-brand">{completed}/{items.length}</span></div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-neutral-100"><div className="h-full rounded-full bg-brand transition-all" style={{ width: `${(completed / items.length) * 100}%` }} /></div>
       </section>
       {message && <div role="status" className={`rounded-xl border p-3 text-sm ${message.type === 'success' ? 'border-success-200 bg-success-50 text-success-700' : 'border-danger-200 bg-danger-50 text-danger-700'}`}>{message.text}</div>}
-      <section className="space-y-3">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {loading ? [1,2,3].map((value) => <div key={value} className="h-28 animate-pulse rounded-2xl bg-neutral-100" />) : items.map(([key, label, description]) => {
           const document = documents.find((doc) => doc.jenis === key);
           const uploaded = Boolean(document?.file_url);

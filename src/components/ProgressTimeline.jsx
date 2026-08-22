@@ -60,8 +60,7 @@ export default function ProgressTimeline({ booking }) {
         </div>
       </div>
 
-      {/* Timeline horizontal sengaja dinonaktifkan: shell selalu berukuran mobile. */}
-      <div className="hidden pt-2 pb-2" aria-hidden="true">
+      <div className="hidden pb-2 pt-2 lg:block">
         <div className="grid grid-cols-8 relative items-start">
           {steps.map((step, idx) => {
             const isLast = idx === steps.length - 1;
@@ -110,8 +109,7 @@ export default function ProgressTimeline({ booking }) {
         </div>
       </div>
 
-      {/* Timeline vertikal dipakai pada seluruh ukuran viewport. */}
-      <div className="block space-y-0 pt-1">
+      <div className="block space-y-0 pt-1 lg:hidden">
         {steps.map((step, idx) => {
           const isLast = idx === steps.length - 1;
           const nextStep = !isLast ? steps[idx + 1] : null;

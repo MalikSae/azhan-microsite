@@ -51,8 +51,14 @@ export default function PortalLoginPage() {
   const fullLogoUrl = brandLogo && brandLogo.startsWith('/') ? `${apiBaseUrl}${brandLogo}` : brandLogo;
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8">
-      <div className="w-full">
+    <div className="min-h-dvh bg-[#f5f7fa] lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,.95fr)]">
+      <section className="hidden bg-neutral-900 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <Link href="/" className="w-fit">{fullLogoUrl ? <img src={fullLogoUrl} alt={brandName} className="max-h-12 max-w-[190px] object-contain brightness-0 invert" /> : <span className="text-xl font-bold">{brandName}</span>}</Link>
+        <div className="max-w-xl"><p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-on-dark">Portal Jamaah</p><h2 className="mt-4 text-4xl font-bold leading-tight">Semua kebutuhan perjalanan dalam satu tempat.</h2><p className="mt-4 max-w-lg text-base leading-7 text-neutral-300">Pantau kesiapan keberangkatan, lengkapi dokumen, dan konfirmasi pembayaran dengan lebih mudah.</p><div className="mt-8 grid grid-cols-3 gap-3 text-sm"><div className="rounded-2xl border border-white/10 bg-white/5 p-4">Progress jelas</div><div className="rounded-2xl border border-white/10 bg-white/5 p-4">Dokumen aman</div><div className="rounded-2xl border border-white/10 bg-white/5 p-4">Tagihan rapi</div></div></div>
+        <p className="text-xs text-neutral-500">Layanan resmi {brandName}</p>
+      </section>
+      <div className="flex min-h-dvh items-center justify-center px-4 py-8 sm:px-8">
+      <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-6">
           <Link href="/" className="inline-block mb-4 hover:opacity-90 transition-opacity">
@@ -71,13 +77,13 @@ export default function PortalLoginPage() {
           <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
             Portal Jamaah
           </h1>
-          <p className="text-neutral-500 text-sm mt-1">
+          <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-neutral-500">
             Masuk untuk melihat jadwal, progress, dan kelola dokumen Anda di {brandName}.
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-5">
+        <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-7">
           {errorMessage && (
             <div className="mb-6 p-4 rounded-xl bg-danger-50 border border-danger-200 text-danger-700 text-sm flex items-start gap-3">
               <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -153,7 +159,7 @@ export default function PortalLoginPage() {
             <span>Kembali ke Beranda {brandName}</span>
           </Link>
         </div>
-      </div>
+      </div></div>
     </div>
   );
 }

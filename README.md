@@ -189,7 +189,7 @@ Endpoint backend utama yang dikonsumsi oleh microsite:
 
 - **Warna Brand**: Menggunakan class `.bg-brand`, `.text-brand`, dan `.border-brand` yang merujuk ke custom property `var(--brand-primary)`.
 - **Warna Status**: Menggunakan token semantik standar Tailwind (`success`, `warning`, `danger`). Status kursi dan status pembayaran tidak boleh memakai warna brand dinamis.
-- **Mobile-First**: Shell aplikasi dibatasi maksimal `460px` agar pengalaman tetap menyerupai aplikasi mobile pada semua ukuran layar. Prioritaskan pengujian pada viewport 375px dan 460px.
+- **Responsive Portal**: Portal memakai bottom navigation dan layout mobile-first pada layar kecil, lalu sidebar serta area konten multi-kolom pada desktop. Prioritaskan pengujian pada viewport 375px dan 1440px.
 - **Tanpa Shadow Berlebihan**: Shell utama menggunakan struktur border dan latar yang bersih; hindari box-shadow besar yang membuat UI terlihat seperti perangkat tiruan.
 - Detail lengkap dapat dibaca di [`design-system.md`](./design-system.md) dan [`AGENTS.md`](./AGENTS.md).
 
@@ -204,3 +204,105 @@ Sebelum menguji microsite, pastikan:
 3. Brand memiliki domain, warna, nomor WhatsApp, serta paket berstatus `published`.
 4. Paket sudah terhubung ke hotel, maskapai, itinerary, fasilitas, dan data rute penerbangan.
 5. Jalankan `npm run build` untuk memastikan seluruh route, termasuk `/compare`, berhasil dikompilasi.
+
+---
+
+## Deployment VPS dengan aaPanel (Dari Awal Sampai Online)
+
+Panduan ini mengasumsikan backend `erp-azhan` sudah online di `https://api.example.com`. Contoh microsite memakai wildcard `*.example.com` agar satu instance melayani seluruh brand.
+
+### 1. DNS dan prasyarat
+
+1. Buat A record `@` dan wildcard `*` menuju IP VPS. Jika microsite hanya memakai subdomain tertentu, buat A record untuk setiap domain tersebut.
+2. Instal **Nginx** dan **Node.js Manager** pada aaPanel.
+3. Gunakan Node.js 20/22 LTS dan instal PM2 melalui Node.js Manager atau terminal.
+4. Pastikan setiap hostname produksi sudah tersimpan pada field domain brand di ERP, persis tanpa protokol dan path.
+
+### 2. Clone dan konfigurasi
+
+```bash
+cd /www/wwwroot
+git clone https://github.com/MalikSae/azhan-microsite.git
+cd azhan-microsite
+git checkout master
+npm ci
+cp .env.example .env.local 2>/dev/null || touch .env.local
+nano .env.local
+```
+
+Isi environment produksi:
+
+```env
+# Dipakai browser pengunjung
+NEXT_PUBLIC_API_BASE_URL=https://api.example.com
+
+# Dipakai server Next.js dan middleware; gunakan localhost bila satu VPS
+API_BASE_URL_INTERNAL=http://127.0.0.1:9090
+```
+
+`NEXT_PUBLIC_API_BASE_URL` ditanam saat build. Perubahan nilainya mengharuskan build ulang. `API_BASE_URL_INTERNAL` harus dapat dijangkau proses Node dan tidak perlu dibuka ke internet.
+
+### 3. Build dan jalankan dengan PM2
+
+```bash
+npm run build
+pm2 start npm --name azhan-microsite -- start -- -p 3000
+pm2 save
+pm2 startup
+```
+
+Jalankan perintah lanjutan yang dicetak oleh `pm2 startup` agar aplikasi otomatis hidup setelah reboot. Alternatifnya gunakan fitur **Node Project** aaPanel dengan startup command `npm run start -- -p 3000`, user `www`, dan working directory `/www/wwwroot/azhan-microsite`.
+
+### 4. Website wildcard dan reverse proxy
+
+1. Tambahkan website `example.com` pada aaPanel dan sertakan domain wildcard `*.example.com`.
+2. Atur **Reverse Proxy** ke `http://127.0.0.1:3000`.
+3. Pastikan Nginx meneruskan hostname asli karena middleware menggunakannya untuk menentukan brand:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
+4. Untuk upload dokumen dan bukti transfer, naikkan batas request di blok `server`:
+
+```nginx
+client_max_body_size 30m;
+proxy_read_timeout 120s;
+```
+
+### 5. SSL wildcard
+
+Wildcard SSL membutuhkan validasi DNS. Pada menu SSL aaPanel pilih Let's Encrypt DNS verification untuk `example.com` dan `*.example.com`, masukkan API DNS provider jika didukung, lalu aktifkan **Force HTTPS**. Jika setiap brand memakai domain berbeda, terbitkan sertifikat untuk setiap domain atau gunakan layanan proxy/CDN yang mengelola SSL masing-masing.
+
+### 6. Verifikasi deployment
+
+```bash
+pm2 status
+pm2 logs azhan-microsite --lines 100
+curl -I -H 'Host: alsha.example.com' http://127.0.0.1:3000
+curl -I https://alsha.example.com
+curl -i 'https://api.example.com/api/public/brand?domain=alsha.example.com'
+```
+
+Periksa alur lengkap pada viewport 375px dan 1440px: landing page, paket, compare, login portal, booking, dokumen, pembayaran, dan profil. Domain yang belum terdaftar memang harus menuju `/brand-not-found`.
+
+### 7. Prosedur update
+
+```bash
+cd /www/wwwroot/azhan-microsite
+git pull --ff-only origin master
+npm ci
+npm run build
+pm2 restart azhan-microsite --update-env
+pm2 save
+```
+
+Jangan commit `.env.local`, `.next`, log PM2, atau credential DNS/SSL. Backup source tidak menggantikan backup database dan folder upload milik repository ERP.

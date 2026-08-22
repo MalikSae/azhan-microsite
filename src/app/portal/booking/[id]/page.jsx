@@ -64,7 +64,7 @@ export default function PortalBookingDetailPage() {
       <div className="flex h-16 items-center justify-between gap-3 px-4"><Link href="/portal/pembayaran" className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-600"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" /></svg>Kembali</Link>{logoUrl ? <img src={logoUrl} alt={brandName} className="max-h-8 max-w-[130px] object-contain" /> : <span className="text-xs font-bold text-neutral-800">{brandName}</span>}</div>
     </header>
 
-    <main className="space-y-3 px-4 py-4">
+    <main className="portal-page space-y-4">
       <div className="rounded-2xl bg-neutral-900 p-4 text-white"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Invoice #INV-{String(booking.id).padStart(5, '0')}</p><h1 className="mt-1 truncate text-lg font-bold">{booking.jadwal_nama}</h1><p className="mt-1 text-xs text-neutral-300">{tanggal(booking.berangkat_tanggal)}</p></div><Badge variant={booking.status === 'lunas' ? 'success' : 'warning'}>{booking.status.toUpperCase()}</Badge></div></div>
 
       <CollapsibleSection title="Informasi Booking" description="Informasi paket, kamar, dan jamaah terdaftar." summary={`${tanggal(booking.berangkat_tanggal)} · Kamar ${booking.room_type}`}>

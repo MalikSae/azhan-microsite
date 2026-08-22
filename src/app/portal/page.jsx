@@ -44,16 +44,16 @@ export default function PortalHomePage() {
   const current = nearestBooking(bookings);
 
   return (
-    <main className="space-y-4 px-4 py-5">
+    <main className="portal-page space-y-5">
       <section className="overflow-hidden rounded-2xl bg-neutral-900 p-5 text-white">
         <p className="text-xs text-neutral-300">Selamat datang di {brandName}</p>
         <h2 className="mt-1 text-xl font-bold">Halo, {jamaah.nama_lengkap}</h2>
         <div className="mt-4 inline-flex rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold">ID Jamaah: {jamaah.id_jamaah || `#${jamaah.id}`}</div>
       </section>
 
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.72fr)]">
       {current && <ProgressTimeline booking={current} />}
-
-      <section className="rounded-2xl border border-neutral-200 bg-white p-4">
+      <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
         <div className="mb-3 flex items-end justify-between">
           <div><h2 className="font-bold text-neutral-900">Booking Saya</h2><p className="text-xs text-neutral-500">Jadwal perjalanan yang terdaftar</p></div>
           <span className="text-xs font-semibold text-neutral-500">{bookings.length} booking</span>
@@ -66,7 +66,7 @@ export default function PortalHomePage() {
             <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3"><span className="text-xs text-neutral-500">Total biaya</span><span className="text-sm font-bold text-neutral-900">{formatRupiah(booking.total_harga)}</span></div>
           </Link>
         ))}</div>}
-      </section>
+      </section></div>
     </main>
   );
 }

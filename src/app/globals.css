@@ -144,3 +144,13 @@ textarea {
 .animate-icon-bounce {
   animation: icon-bounce-glow 1.2s ease-in-out infinite;
 }
+
+.portal-page {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding: 1.25rem 1rem;
+}
+
+@media (min-width: 640px) { .portal-page { padding: 1.5rem; } }
+@media (min-width: 1024px) { .portal-page { padding: 2rem; } }
