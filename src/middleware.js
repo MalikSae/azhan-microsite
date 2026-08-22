@@ -35,6 +35,7 @@ export async function middleware(request) {
     requestHeaders.set('x-brand-name', brand.name || '');
     requestHeaders.set('x-brand-whatsapp', brand.whatsapp_number || '');
     requestHeaders.set('x-brand-logo', brand.logo_url || '');
+    requestHeaders.set('x-brand-icon', brand.icon_url || '');
     requestHeaders.set('x-brand-color', brand.primary_color || '#B87A3A');
 
     return NextResponse.next({

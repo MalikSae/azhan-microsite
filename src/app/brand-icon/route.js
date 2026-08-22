@@ -9,13 +9,13 @@ function getHostname(request) {
   return rawHost.split(':')[0].trim();
 }
 
-function resolveLogoUrl(logoUrl, publicApiBaseUrl, requestUrl) {
-  if (!logoUrl) return new URL('/globe.svg', requestUrl);
+function resolveIconUrl(iconUrl, publicApiBaseUrl, requestUrl) {
+  if (!iconUrl) return new URL('/globe.svg', requestUrl);
 
   try {
-    if (/^https?:\/\//i.test(logoUrl)) return new URL(logoUrl);
-    if (logoUrl.startsWith('/') && publicApiBaseUrl) {
-      return new URL(logoUrl, `${publicApiBaseUrl.replace(/\/$/, '')}/`);
+    if (/^https?:\/\//i.test(iconUrl)) return new URL(iconUrl);
+    if (iconUrl.startsWith('/') && publicApiBaseUrl) {
+      return new URL(iconUrl, `${publicApiBaseUrl.replace(/\/$/, '')}/`);
     }
   } catch {
     // Gunakan ikon fallback jika URL logo brand tidak valid.
@@ -38,7 +38,7 @@ export async function GET(request) {
     if (response.ok) {
       const brand = await response.json();
       const redirect = NextResponse.redirect(
-        resolveLogoUrl(brand.logo_url, publicApiBaseUrl, request.url),
+        resolveIconUrl(brand.icon_url, publicApiBaseUrl, request.url),
         307,
       );
       redirect.headers.set('Cache-Control', 'no-store, max-age=0');
