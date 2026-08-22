@@ -8,29 +8,11 @@ const dmSans = DM_Sans({
   variable: '--font-dm-sans',
 });
 
-function resolveBrandIcon(brandLogo) {
-  const fallbackIcon = '/globe.svg';
-
-  if (!brandLogo) return fallbackIcon;
-
-  try {
-    if (/^https?:\/\//i.test(brandLogo)) {
-      return new URL(brandLogo).toString();
-    }
-
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (!apiBaseUrl || !brandLogo.startsWith('/')) return fallbackIcon;
-
-    return new URL(brandLogo, `${apiBaseUrl.replace(/\/$/, '')}/`).toString();
-  } catch {
-    return fallbackIcon;
-  }
-}
-
 export async function generateMetadata() {
   const headerList = await headers();
   const brandName = headerList.get('x-brand-name') || 'Travel Umroh';
-  const brandIcon = resolveBrandIcon(headerList.get('x-brand-logo'));
+  const brandId = headerList.get('x-brand-id') || 'default';
+  const brandIcon = `/brand-icon?brand=${encodeURIComponent(brandId)}`;
 
   return {
     title: `${brandName} - Paket Umroh & Haji`,
