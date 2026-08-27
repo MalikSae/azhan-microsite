@@ -119,6 +119,11 @@ export default async function HomePage() {
       {/* ━━━ SECTION 2: TRUST BAR ━━━ */}
       <TrustBar />
 
+      {/* ─── GARIS PEMISAH SECTION KEUNGGULAN & KATALOG ─── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="border-t border-neutral-200" />
+      </div>
+
       {/* ━━━ SECTION 3: KATALOG PAKET UMROH ━━━ */}
       <section className="py-14 md:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="space-y-8 md:space-y-10">
