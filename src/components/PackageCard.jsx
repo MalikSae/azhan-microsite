@@ -234,6 +234,25 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
               )}
             </div>
 
+            {/* Hotel Transit */}
+            {schedule.transit_hotels && schedule.transit_hotels.length > 0 && (
+              <div className="bg-neutral-50 p-2 rounded-lg border border-neutral-100 text-xs">
+                <span className="text-[10px] font-bold text-neutral-400 block uppercase tracking-wide">
+                  Hotel Transit
+                </span>
+                <div className="space-y-1 mt-1">
+                  {schedule.transit_hotels.map((th, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-neutral-800 truncate">
+                        {th.nama} {th.kota && <span className="text-neutral-500 font-normal">({th.kota})</span>}
+                      </span>
+                      {th.star_rating > 0 && renderStars(th.star_rating)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Kuota / Progress */}
             <SeatProgressBar 
               totalSeat={schedule.seat_total || 0}
