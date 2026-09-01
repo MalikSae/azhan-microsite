@@ -38,6 +38,22 @@ export async function middleware(request) {
     requestHeaders.set('x-brand-icon', brand.icon_url || '');
     requestHeaders.set('x-brand-color', brand.primary_color || '#B87A3A');
 
+    // Extended SEO & Local NAP headers
+    requestHeaders.set('x-brand-address', brand.address || brand.alamat || '');
+    requestHeaders.set('x-brand-city', brand.city || brand.kota || '');
+    requestHeaders.set('x-brand-province', brand.province || brand.provinsi || '');
+    requestHeaders.set('x-brand-email', brand.email || '');
+    requestHeaders.set('x-brand-phone', brand.phone || brand.telp_kantor || '');
+    requestHeaders.set('x-brand-gmaps', brand.gmaps_url || '');
+    requestHeaders.set('x-brand-legal', brand.legal_info || brand.keterangan_legalitas || '');
+    requestHeaders.set('x-brand-meta-title', brand.meta_title || '');
+    requestHeaders.set('x-brand-meta-desc', brand.meta_description || '');
+    requestHeaders.set('x-brand-og-image', brand.og_image_url || '');
+    requestHeaders.set('x-brand-gsc-code', brand.google_verification_code || '');
+    if (brand.social_media) {
+      requestHeaders.set('x-brand-socials', JSON.stringify(brand.social_media));
+    }
+
     return NextResponse.next({
       request: {
         headers: requestHeaders,

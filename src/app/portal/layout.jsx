@@ -9,6 +9,12 @@ export async function generateMetadata() {
   return {
     title: `Portal Jamaah - ${brandName}`,
     description: `Portal Informasi & Layanan Jamaah Resmi ${brandName}`,
+    robots: {
+      index: false,
+      follow: false,
+      noarchive: true,
+      nocache: true,
+    },
   };
 }
 
