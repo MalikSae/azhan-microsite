@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SearchBar from './SearchBar';
@@ -18,8 +18,14 @@ export default function FilterResultsClient({
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('departure_asc');
+  const [visibleCount, setVisibleCount] = useState(9);
+  const loaderRef = useRef(null);
 
   const { bulan, harga, maskapai, promo } = filterParams;
+
+  useEffect(() => {
+    setVisibleCount(9);
+  }, [bulan, harga, maskapai, promo, searchQuery, sortBy]);
 
   // Filter and sort
   const filteredAndSortedSchedules = useMemo(() => {
@@ -98,6 +104,20 @@ export default function FilterResultsClient({
     return result;
   }, [initialSchedules, bulan, harga, maskapai, promo, searchQuery, sortBy]);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setVisibleCount((prev) => prev + 9);
+      }
+    }, { rootMargin: '200px' });
+    
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+    
+    return () => observer.disconnect();
+  }, [filteredAndSortedSchedules.length, visibleCount]);
+
   // Format month label
   const monthLabel = useMemo(() => {
     if (!bulan) return null;
@@ -125,25 +145,37 @@ export default function FilterResultsClient({
     router.push('/paket');
   };
 
+  const handleTogglePromo = () => {
+    const params = new URLSearchParams();
+    if (bulan) params.set('bulan', bulan);
+    if (harga) params.set('harga', harga);
+    if (maskapai) params.set('maskapai', maskapai);
+    
+    const isPromoActive = promo === '1' || promo === 'true';
+    if (!isPromoActive) {
+      params.set('promo', '1');
+    }
+    
+    router.push(`/paket?${params.toString()}`);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Back to Home & Title Bar */}
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-neutral-700 hover:text-neutral-900 bg-white border border-neutral-200 px-3.5 py-2 rounded-xl shadow-2xs transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      {/* Breadcrumb & Clear Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-2 md:mb-4 px-1">
+        <nav className="flex items-center gap-2 text-xs sm:text-sm font-medium text-white/80">
+          <Link href="/" className="hover:text-white transition-colors">Beranda</Link>
+          <svg className="w-3 h-3 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
           </svg>
-          <span>Kembali ke Beranda</span>
-        </Link>
+          <span className="text-white font-semibold">Paket Umroh</span>
+        </nav>
 
         {hasActiveFilters && (
           <button
             type="button"
             onClick={handleClearFilter}
-            className="text-xs sm:text-sm font-semibold text-danger-600 hover:text-danger-700 underline"
+            className="text-xs sm:text-sm font-semibold text-white/80 hover:text-white underline decoration-white/40 underline-offset-2 transition-colors"
           >
             Hapus Semua Filter
           </button>
@@ -152,7 +184,7 @@ export default function FilterResultsClient({
 
       {/* Active Filter Badges */}
       {hasActiveFilters && (
-        <div className="p-4 bg-white rounded-2xl md:rounded-3xl border border-neutral-200 shadow-2xs space-y-2.5">
+        <div className="p-4 bg-white rounded-xl border border-neutral-200 shadow-2xs space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs sm:text-sm font-bold text-neutral-800">
               Filter Pencarian Aktif:
@@ -191,28 +223,47 @@ export default function FilterResultsClient({
       )}
 
       {/* Search & Sort Controls */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl md:rounded-3xl border border-neutral-200 shadow-xs">
-        <div className="flex-1 max-w-md">
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
-        </div>
-        <div className="w-full sm:w-auto flex items-center gap-2">
-          <SortDropdown value={sortBy} onChange={setSortBy} />
+      <div className="bg-white rounded-2xl md:rounded-3xl border border-neutral-100/90 shadow-md p-3 sm:p-4 md:p-5 ring-1 ring-black/5">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center border border-neutral-200/90 rounded-xl md:rounded-2xl bg-neutral-50/40 hover:bg-neutral-50/70 transition-colors divide-y md:divide-y-0 md:divide-x divide-neutral-200/90 shadow-2xs">
+          <div className="flex-1 min-w-0">
+            <SearchBar 
+              value={searchQuery} 
+              onChange={setSearchQuery} 
+              variant="borderless"
+              className="py-3 px-4 rounded-t-xl md:rounded-none md:rounded-l-2xl"
+            />
+          </div>
+          <div className="w-full md:w-[280px] shrink-0">
+            <SortDropdown 
+              value={sortBy} 
+              onChange={setSortBy} 
+              variant="borderless"
+              className="py-3 px-4 rounded-b-xl md:rounded-none md:rounded-r-2xl"
+            />
+          </div>
         </div>
       </div>
 
       {/* Package Grid */}
       {filteredAndSortedSchedules.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-          {filteredAndSortedSchedules.map((schedule) => (
-            <PackageCard
-              key={schedule.id}
-              schedule={schedule}
-              brandWhatsapp={brandWhatsapp}
-              brandName={brandName}
-              brandLogoUrl={brandLogoUrl}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+            {filteredAndSortedSchedules.slice(0, visibleCount).map((schedule) => (
+              <PackageCard
+                key={schedule.id}
+                schedule={schedule}
+                brandWhatsapp={brandWhatsapp}
+                brandName={brandName}
+                brandLogoUrl={brandLogoUrl}
+              />
+            ))}
+          </div>
+          {visibleCount < filteredAndSortedSchedules.length && (
+            <div ref={loaderRef} className="flex justify-center py-12">
+              <div className="w-8 h-8 rounded-full border-4 border-neutral-200 border-t-primary-500 animate-spin"></div>
+            </div>
+          )}
+        </>
       ) : (
         <EmptyState
           title="Paket Tidak Ditemukan"
@@ -222,3 +273,14 @@ export default function FilterResultsClient({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+

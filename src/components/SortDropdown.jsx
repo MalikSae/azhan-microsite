@@ -10,7 +10,7 @@ const OPTIONS = [
   { value: 'duration_desc', label: 'Durasi Terlama' },
 ];
 
-export default function SortDropdown({ value, onChange }) {
+export default function SortDropdown({ value, onChange, className = "", variant = "default" }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -33,9 +33,7 @@ export default function SortDropdown({ value, onChange }) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-3.5 py-2.5 bg-white border rounded-lg text-sm text-neutral-700 font-medium flex items-center justify-between shadow-sm transition-all focus:outline-none ${
-          isOpen ? 'border-brand ring-2 ring-brand/20' : 'border-neutral-200 hover:border-neutral-300'
-        }`}
+        className={`w-full px-3.5 py-2.5 text-sm text-neutral-700 font-medium flex items-center justify-between transition-all focus:outline-none ${variant === "borderless" ? "bg-transparent border-0 shadow-none" : "bg-white border rounded-lg shadow-sm " + (isOpen ? "border-brand ring-2 ring-brand/20" : "border-neutral-200 hover:border-neutral-300")} ${className}`}
       >
         <span className="truncate">{selectedOption.label}</span>
         <svg 
@@ -80,3 +78,6 @@ export default function SortDropdown({ value, onChange }) {
     </div>
   );
 }
+
+
+

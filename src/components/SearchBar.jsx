@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function SearchBar({ value, onChange, placeholder = "Cari nama paket, hotel, atau keberangkatan..." }) {
+export default function SearchBar({ value, onChange, placeholder = "Cari nama paket, hotel, atau keberangkatan...", className = "", variant = "default" }) {
   return (
     <div className="relative w-full">
       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
@@ -13,7 +13,7 @@ export default function SearchBar({ value, onChange, placeholder = "Cari nama pa
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-lg text-sm placeholder:text-neutral-400 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all shadow-sm"
+        className={`w-full pl-10 pr-4 py-2.5 text-sm placeholder:text-neutral-400 text-neutral-800 focus:outline-none transition-all ${variant === "borderless" ? "bg-transparent border-0 focus:ring-0 shadow-none" : "bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent shadow-sm"} ${className}`}
       />
       {value && (
         <button
@@ -29,3 +29,7 @@ export default function SearchBar({ value, onChange, placeholder = "Cari nama pa
     </div>
   );
 }
+
+
+
+

@@ -1,4 +1,4 @@
-﻿import { headers } from 'next/headers';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import { getPublicSchedules } from '@/lib/api';
 import FilterResultsClient from '@/components/FilterResultsClient';
@@ -88,8 +88,22 @@ export default async function PaketFilterPage({ searchParams }) {
           </div>
         </header>
 
-        {/* Content Area */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+        {/* Full-width SEO Banner & Title */}
+        <div className="w-full bg-neutral-900 relative">
+          <div className="absolute inset-0 opacity-30 bg-[url('/hero-makkah.jpg')] bg-cover bg-center mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-900/80 via-neutral-900/50 to-neutral-900/90"></div>
+          <div className="relative z-10 px-4 sm:px-6 lg:px-8 pt-12 pb-28 md:pt-16 md:pb-32 flex flex-col items-center text-center max-w-7xl mx-auto">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold font-heading text-white mb-4 drop-shadow-md">
+              Paket Umroh Terlengkap dari {brandName}
+            </h1>
+            <p className="text-neutral-200 text-sm md:text-base max-w-2xl font-medium leading-relaxed drop-shadow-sm">
+              Temukan pilihan paket ibadah umroh terbaik dengan jadwal keberangkatan pasti, harga transparan, maskapai penerbangan terpercaya, dan akomodasi terdekat di Makkah serta Madinah.
+            </p>
+          </div>
+        </div>
+
+        {/* Content Area (Overlapping Banner) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 -mt-20 md:-mt-24 relative z-20">
           {fetchError && (
             <div className="mb-6 p-4 rounded-xl bg-danger-50 border border-danger-200 text-danger-700 text-sm flex items-center gap-3">
               <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -118,3 +132,5 @@ export default async function PaketFilterPage({ searchParams }) {
     </main>
   );
 }
+
+
