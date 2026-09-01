@@ -172,36 +172,104 @@ export default async function PackageDetailPage({ params }) {
 
   const waLink = `https://wa.me/6281234567890?text=Halo%20${encodeURIComponent(brandName)},%20saya%20tertarik%20dengan%20Paket%20Umroh%20${encodeURIComponent(schedule.jadwal_nama)}%20(ID:%20${schedule.id}).%20Mohon%20info%20lebih%20lanjut.`;
 
-  // Structured Data (JSON-LD)
-  const canonicalUrl = `https://${headerList.get('host') || 'azhan.test'}/paket/${schedule.id}-${schedule.jadwal_nama.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-  const jsonLd = {
+  // Structured Data (JSON-LD): Product, TouristTrip & BreadcrumbList
+  const rawHost = headerList.get('x-forwarded-host') || headerList.get('host') || 'azhan.test';
+  const host = rawHost.split(':')[0].trim();
+  const proto = headerList.get('x-forwarded-proto') || 'https';
+  const baseUrl = `${proto}://${host}`;
+  const canonicalUrl = `${baseUrl}/paket/${schedule.id}-${(schedule.jadwal_nama || 'paket').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  const packageImageUrl = schedule.brosur_thumb_url 
+    ? (schedule.brosur_thumb_url.startsWith('http') ? schedule.brosur_thumb_url : `${apiBaseUrl}${schedule.brosur_thumb_url}`) 
+    : `${baseUrl}/hero-makkah.jpg`;
+
+  const productSchema = {
     '@context': 'https://schema.org',
     '@type': 'Product',
+    '@id': `${canonicalUrl}#product`,
     name: `Paket Umroh ${schedule.jadwal_nama}`,
-    image: schedule.brosur_thumb_url ? (schedule.brosur_thumb_url.startsWith('http') ? schedule.brosur_thumb_url : `${apiBaseUrl}${schedule.brosur_thumb_url}`) : undefined,
+    image: packageImageUrl,
     description: `Paket Umroh ${schedule.jadwal_nama} bersama ${brandName}. Keberangkatan dari ${schedule.berangkat_bandara_asal || 'Jakarta'}.`,
     brand: {
       '@type': 'Brand',
-      name: brandName
+      name: brandName,
     },
     offers: {
       '@type': 'Offer',
       url: canonicalUrl,
       priceCurrency: 'IDR',
       price: schedule.harga_quad || 0,
+      priceValidUntil: schedule.berangkat_tanggal || undefined,
       availability: seatTerisi < seatTotal ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
       seller: {
-        '@type': 'Organization',
-        name: brandName
-      }
-    }
+        '@type': 'TravelAgency',
+        name: brandName,
+        url: baseUrl,
+      },
+    },
   };
+
+  const touristTripSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'TouristTrip',
+    '@id': `${canonicalUrl}#trip`,
+    name: `Paket Umroh ${schedule.jadwal_nama}`,
+    description: `Perjalanan Ibadah Umroh ${durationDays > 0 ? `${durationDays} Hari` : ''} bersama ${brandName}.`,
+    touristType: ['Jamaah Umroh', 'Muslim Travelers'],
+    offers: {
+      '@type': 'Offer',
+      price: schedule.harga_quad || 0,
+      priceCurrency: 'IDR',
+      url: canonicalUrl,
+    },
+    provider: {
+      '@type': 'TravelAgency',
+      name: brandName,
+      url: baseUrl,
+    },
+    itinerary: itinerary?.days ? {
+      '@type': 'ItemList',
+      numberOfItems: itinerary.days.length,
+      itemListElement: itinerary.days.map((day, idx) => ({
+        '@type': 'ListItem',
+        position: idx + 1,
+        name: `Hari ${day.day_number || idx + 1}: ${day.title}`,
+        description: day.location || (day.activities && day.activities.length > 0 ? day.activities.map(a => a.text).join('; ') : undefined),
+      })),
+    } : undefined,
+  };
+
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Beranda',
+        item: baseUrl,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Paket Umroh',
+        item: `${baseUrl}/paket`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: schedule.jadwal_nama,
+        item: canonicalUrl,
+      },
+    ],
+  };
+
+  const combinedSchemas = [productSchema, touristTripSchema, breadcrumbSchema];
 
   return (
     <div className="min-h-screen bg-[#F7F9FA] pb-24 md:pb-12 font-sans text-neutral-900">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(combinedSchemas) }}
       />
       {/* Navbar / Header Simple */}
       <div className="bg-white border-b border-neutral-200 sticky top-0 z-40">

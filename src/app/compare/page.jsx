@@ -5,10 +5,21 @@ import ComparePackagesClient from '@/components/ComparePackagesClient';
 
 export async function generateMetadata() {
   const headerList = await headers();
+  const rawHost = headerList.get('x-forwarded-host') || headerList.get('host') || 'azhan.test';
+  const host = rawHost.split(':')[0].trim();
+  const proto = headerList.get('x-forwarded-proto') || 'https';
   const brandName = headerList.get('x-brand-name') || 'Travel Umroh';
+
   return {
-    title: `Bandingkan Paket - ${brandName}`,
+    title: `Bandingkan Paket Umroh - ${brandName}`,
     description: `Bandingkan jadwal, fasilitas, hotel, dan harga paket umroh ${brandName}.`,
+    alternates: {
+      canonical: `${proto}://${host}/compare`,
+    },
+    robots: {
+      index: false,
+      follow: true,
+    },
   };
 }
 

@@ -6,10 +6,41 @@ import FooterSection from '@/components/FooterSection';
 
 export async function generateMetadata() {
   const headerList = await headers();
+  const rawHost = headerList.get('x-forwarded-host') || headerList.get('host') || 'azhan.test';
+  const host = rawHost.split(':')[0].trim();
+  const proto = headerList.get('x-forwarded-proto') || 'https';
+  const canonicalUrl = `${proto}://${host}/paket`;
+
   const brandName = headerList.get('x-brand-name') || 'Travel Umroh';
+  const title = `Daftar Paket Umroh & Haji Terlengkap - ${brandName}`;
+  const description = `Temukan dan pilih paket umroh terbaik dari ${brandName} dengan jadwal keberangkatan pasti, maskapai terpercaya, dan akomodasi hotel terdekat di Makkah serta Madinah.`;
+
   return {
-    title: `Daftar Paket Umroh - ${brandName}`,
-    description: `Temukan dan pilih paket umroh terbaik dari ${brandName} dengan jadwal, maskapai, dan hotel sesuai preferensi Anda.`,
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: brandName,
+      type: 'website',
+      images: [
+        {
+          url: '/hero-makkah.jpg',
+          width: 1200,
+          height: 630,
+          alt: `Daftar Paket Umroh ${brandName}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
   };
 }
 
@@ -19,6 +50,23 @@ export default async function PaketFilterPage({ searchParams }) {
   const brandName = headerList.get('x-brand-name') || 'Travel Umroh';
   const brandWhatsapp = headerList.get('x-brand-whatsapp') || '';
   const brandLogo = headerList.get('x-brand-logo') || '';
+  const brandAddress = headerList.get('x-brand-address') || '';
+  const brandCity = headerList.get('x-brand-city') || '';
+  const brandProvince = headerList.get('x-brand-province') || '';
+  const brandEmail = headerList.get('x-brand-email') || '';
+  const brandPhone = headerList.get('x-brand-phone') || '';
+  const brandGmaps = headerList.get('x-brand-gmaps') || '';
+  const brandLegal = headerList.get('x-brand-legal') || 'Izin Resmi PPIU Kemenag RI';
+  const brandSocialsRaw = headerList.get('x-brand-socials');
+
+  let brandSocials = null;
+  if (brandSocialsRaw) {
+    try {
+      brandSocials = JSON.parse(brandSocialsRaw);
+    } catch {
+      // ignore JSON parse error
+    }
+  }
 
   const params = await searchParams;
   const filterParams = {
@@ -128,6 +176,14 @@ export default async function PaketFilterPage({ searchParams }) {
         brandName={brandName}
         brandWhatsapp={brandWhatsapp}
         fullLogoUrl={fullLogoUrl}
+        address={brandAddress}
+        city={brandCity}
+        province={brandProvince}
+        email={brandEmail}
+        phone={brandPhone}
+        gmapsUrl={brandGmaps}
+        legalInfo={brandLegal}
+        socials={brandSocials}
       />
     </main>
   );
