@@ -2,30 +2,47 @@
 
 import React, { useState } from 'react';
 
-export default function FaqSection() {
+export default function FaqSection({ brandName = 'Travel Umroh' }) {
   const [openIndex, setOpenIndex] = useState(0);
 
   const faqs = [
     {
-      q: 'Bagaimana cara mendaftar dan memesan paket umroh?',
-      a: 'Pilih paket yang diinginkan pada katalog, lalu klik tombol "Booking & Konsultasi" untuk terhubung langsung dengan tim representatif kami melalui WhatsApp atau langsung login melalui Portal Jamaah.'
+      q: `Bagaimana cara mendaftar dan memesan paket umroh di ${brandName}?`,
+      a: `Pilih paket yang Anda inginkan pada katalog ${brandName}, lalu klik tombol "Lihat Detail" atau "Booking & Konsultasi" untuk terhubung langsung dengan tim representatif ${brandName} melalui WhatsApp resmi atau langsung login melalui Portal Jamaah.`
     },
     {
-      q: 'Berapa besaran DP dan bagaimana sistem pelunasannya?',
-      a: 'Pendaftaran cukup dengan setoran DP (sesuai ketentuan paket). Pelunasan dapat dilakukan secara bertahap dan fleksibel maksimal 30 hari sebelum jadwal keberangkatan.'
+      q: `Berapa besaran DP dan bagaimana sistem pelunasannya di ${brandName}?`,
+      a: `Pendaftaran umroh di ${brandName} cukup dengan setoran awal DP (sesuai ketentuan paket yang dipilih). Pelunasan sisa biaya dapat dilakukan secara bertahap dan fleksibel maksimal 30 hari sebelum jadwal keberangkatan.`
     },
     {
-      q: 'Apa saja dokumen yang diperlukan untuk pendaftaran?',
-      a: 'Dokumen utama mencakup Paspor asli dengan masa berlaku minimal 8 bulan, KTP, Kartu Keluarga, dan Buku Nikah (bagi suami-istri).'
+      q: `Apa saja dokumen yang diperlukan untuk pendaftaran umroh ${brandName}?`,
+      a: `Dokumen utama yang diperlukan meliputi Paspor asli dengan masa berlaku minimal 8 bulan, KTP, Kartu Keluarga, dan Buku Nikah (khusus bagi suami-istri). Tim ${brandName} siap membantu proses verifikasi dan kelengkapan dokumen Anda.`
     },
     {
-      q: 'Apakah bisa memilih tipe kamar (Double / Triple / Quad)?',
-      a: 'Tentu. Kami menyediakan pilihan kamar Quad (sekamar ber-4), Triple (sekamar ber-3), dan Double (sekamar ber-2) yang dapat Anda sesuaikan saat proses booking.'
+      q: `Apakah jamaah ${brandName} bisa memilih tipe kamar (Double / Triple / Quad)?`,
+      a: `Tentu. ${brandName} menyediakan pilihan kamar Quad (sekamar ber-4), Triple (sekamar ber-3), dan Double (sekamar ber-2) yang dapat Anda tentukan sesuai kenyamanan ibadah keluarga saat proses booking.`
     }
   ];
 
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.a,
+      },
+    })),
+  };
+
   return (
     <section className="py-14 md:py-20 bg-white border-t border-neutral-200/80">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 md:space-y-10">
         <div className="text-left md:text-center md:max-w-2xl md:mx-auto space-y-1.5">
           <span className="text-[11px] md:text-xs font-bold uppercase tracking-wider text-brand block">

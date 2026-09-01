@@ -9,12 +9,74 @@ import Testimonials from '@/components/Testimonials';
 import FaqSection from '@/components/FaqSection';
 import FooterSection from '@/components/FooterSection';
 
+export async function generateMetadata() {
+  const headerList = await headers();
+  const rawHost = headerList.get('x-forwarded-host') || headerList.get('host') || 'azhan.test';
+  const host = rawHost.split(':')[0].trim();
+  const proto = headerList.get('x-forwarded-proto') || 'https';
+  const baseUrl = `${proto}://${host}`;
+
+  const brandName = headerList.get('x-brand-name') || 'Travel Umroh';
+  const customMetaTitle = headerList.get('x-brand-meta-title');
+  const customMetaDesc = headerList.get('x-brand-meta-desc');
+  const ogImageUrl = headerList.get('x-brand-og-image') || '/hero-makkah.jpg';
+
+  const title = customMetaTitle || `Paket Umroh & Haji Khusus Resmi Berizin PPIU | ${brandName}`;
+  const description = customMetaDesc || `Pilihan paket umroh terbaik dan terpercaya dari ${brandName}. Jadwal keberangkatan pasti, maskapai terpercaya, hotel dekat masjid, dan bimbingan ibadah sesuai Sunnah.`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: baseUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: baseUrl,
+      siteName: brandName,
+      type: 'website',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${brandName} - Paket Umroh & Haji Khusus`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImageUrl],
+    },
+  };
+}
+
 export default async function HomePage() {
   const headersList = await headers();
   const brandId = headersList.get('x-brand-id') || '1';
   const brandName = headersList.get('x-brand-name') || 'Hana Tours Travel';
   const brandLogo = headersList.get('x-brand-logo');
   const brandWhatsapp = headersList.get('x-brand-whatsapp') || '6281234567890';
+  const brandAddress = headersList.get('x-brand-address') || '';
+  const brandCity = headersList.get('x-brand-city') || '';
+  const brandProvince = headersList.get('x-brand-province') || '';
+  const brandEmail = headersList.get('x-brand-email') || '';
+  const brandPhone = headersList.get('x-brand-phone') || '';
+  const brandGmaps = headersList.get('x-brand-gmaps') || '';
+  const brandLegal = headersList.get('x-brand-legal') || 'Izin Resmi PPIU Kemenag RI';
+  const brandSocialsRaw = headersList.get('x-brand-socials');
+
+  let brandSocials = null;
+  if (brandSocialsRaw) {
+    try {
+      brandSocials = JSON.parse(brandSocialsRaw);
+    } catch {
+      // ignore JSON parse error
+    }
+  }
 
   let schedules = [];
   let fetchError = null;
@@ -56,9 +118,9 @@ export default async function HomePage() {
                   {brandName.charAt(0)}
                 </div>
                 <div className="min-w-0">
-                  <h1 className="truncate text-sm sm:text-base font-bold text-neutral-900 leading-tight font-heading">
+                  <span className="truncate text-sm sm:text-base font-bold text-neutral-900 leading-tight font-heading block">
                     {brandName}
-                  </h1>
+                  </span>
                 </div>
               </div>
             )}
@@ -180,13 +242,21 @@ export default async function HomePage() {
       <Testimonials brandName={brandName} />
 
       {/* ━━━ SECTION 6: FAQ (PERTANYAAN UMUM) ━━━ */}
-      <FaqSection />
+      <FaqSection brandName={brandName} />
 
       {/* ━━━ SECTION 7: FOOTER (NAP & KONTAK) ━━━ */}
       <FooterSection
         brandName={brandName}
         brandWhatsapp={brandWhatsapp}
         fullLogoUrl={fullLogoUrl}
+        address={brandAddress}
+        city={brandCity}
+        province={brandProvince}
+        email={brandEmail}
+        phone={brandPhone}
+        gmapsUrl={brandGmaps}
+        legalInfo={brandLegal}
+        socials={brandSocials}
       />
     </main>
   );
