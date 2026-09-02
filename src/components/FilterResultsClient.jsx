@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -21,11 +21,11 @@ export default function FilterResultsClient({
   const [visibleCount, setVisibleCount] = useState(9);
   const loaderRef = useRef(null);
 
-  const { bulan, harga, maskapai, promo } = filterParams;
+  const { bulan, harga, maskapai, promo, flash_sale, hampir_penuh, banyak_dicari } = filterParams;
 
   useEffect(() => {
     setVisibleCount(9);
-  }, [bulan, harga, maskapai, promo, searchQuery, sortBy]);
+  }, [bulan, harga, maskapai, promo, flash_sale, hampir_penuh, banyak_dicari, searchQuery, sortBy]);
 
   // Filter and sort
   const filteredAndSortedSchedules = useMemo(() => {
@@ -62,9 +62,25 @@ export default function FilterResultsClient({
       });
     }
 
-    // Filter Promo
+    const today = new Date().toISOString().split('T')[0];
+
+    // Filter Promo (semua promo yang masih aktif)
     if (promo === '1' || promo === 'true') {
-      result = result.filter(item => item.is_promo === true);
+      result = result.filter(item => {
+        const isExpired = item.promo_until && item.promo_until < today;
+        return item.is_promo === true && !isExpired;
+      });
+    }
+
+    // Filter Flash Sale (promo dengan batas waktu aktif)
+    if (flash_sale === '1' || flash_sale === 'true') {
+      const today = new Date().toISOString().split('T')[0];
+      result = result.filter(item => item.is_promo === true && item.promo_until && item.promo_until >= today);
+    }
+
+    // Filter Hampir Penuh (sisa <= 10 && sisa > 0)
+    if (hampir_penuh === '1' || hampir_penuh === 'true') {
+      result = result.filter(item => item.seat_sisa > 0 && item.seat_sisa <= 10);
     }
 
     // Filter Search Query
@@ -81,6 +97,11 @@ export default function FilterResultsClient({
 
     // Sort
     result.sort((a, b) => {
+      // Prioritize Banyak Dicari if active and default sort
+      if ((banyak_dicari === '1' || banyak_dicari === 'true') && sortBy === 'departure_asc') {
+        return (b.views || 0) - (a.views || 0);
+      }
+
       if (sortBy === 'price_asc') {
         return (a.harga_quad || 0) - (b.harga_quad || 0);
       }
@@ -102,7 +123,7 @@ export default function FilterResultsClient({
     });
 
     return result;
-  }, [initialSchedules, bulan, harga, maskapai, promo, searchQuery, sortBy]);
+  }, [initialSchedules, bulan, harga, maskapai, promo, flash_sale, hampir_penuh, banyak_dicari, searchQuery, sortBy]);
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -138,25 +159,37 @@ export default function FilterResultsClient({
     return null;
   }, [harga]);
 
-  const hasActiveFilters = Boolean(bulan || harga || maskapai || promo === '1' || promo === 'true' || searchQuery);
+  const isPromoActive = promo === '1' || promo === 'true';
+  const isFlashSaleActive = flash_sale === '1' || flash_sale === 'true';
+  const isHampirPenuhActive = hampir_penuh === '1' || hampir_penuh === 'true';
+  const isBanyakDicariActive = banyak_dicari === '1' || banyak_dicari === 'true';
+
+  const hasActiveFilters = Boolean(
+    bulan || harga || maskapai || isPromoActive || isFlashSaleActive || isHampirPenuhActive || isBanyakDicariActive || searchQuery
+  );
 
   const handleClearFilter = () => {
     setSearchQuery('');
     router.push('/paket');
   };
 
-  const handleTogglePromo = () => {
+  // Single-select (eksklusif) untuk Quick Filter
+  const handleToggleQuickFilter = (key) => {
     const params = new URLSearchParams();
     if (bulan) params.set('bulan', bulan);
     if (harga) params.set('harga', harga);
     if (maskapai) params.set('maskapai', maskapai);
-    
-    const isPromoActive = promo === '1' || promo === 'true';
-    if (!isPromoActive) {
-      params.set('promo', '1');
+
+    const currentVal = filterParams[key];
+    const isCurrentlyActive = currentVal === '1' || currentVal === 'true';
+
+    // Jika belum aktif, aktifkan HANYA filter ini (filter cepat lainnya otomatis ter-reset)
+    if (!isCurrentlyActive) {
+      params.set(key, '1');
     }
-    
-    router.push(`/paket?${params.toString()}`);
+
+    const queryStr = params.toString();
+    router.push(queryStr ? `/paket?${queryStr}` : '/paket');
   };
 
   return (
@@ -175,7 +208,7 @@ export default function FilterResultsClient({
           <button
             type="button"
             onClick={handleClearFilter}
-            className="text-xs sm:text-sm font-semibold text-white/80 hover:text-white underline decoration-white/40 underline-offset-2 transition-colors"
+            className="text-xs sm:text-sm font-semibold text-white/80 hover:text-white underline decoration-white/40 underline-offset-2 transition-colors cursor-pointer"
           >
             Hapus Semua Filter
           </button>
@@ -210,20 +243,65 @@ export default function FilterResultsClient({
                 <span>Maskapai: {maskapai}</span>
               </span>
             )}
-            {(promo === '1' || promo === 'true') && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-warning-100 text-warning-800 border border-warning-200">
-                <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            {isPromoActive && (
+              <button
+                type="button"
+                onClick={() => handleToggleQuickFilter('promo')}
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                <span>Promo Spesial</span>
-              </span>
+                <span>Promo</span>
+                <span className="text-amber-700 font-bold ml-0.5">×</span>
+              </button>
+            )}
+            {isFlashSaleActive && (
+              <button
+                type="button"
+                onClick={() => handleToggleQuickFilter('flash_sale')}
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 text-rose-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Flash Sale</span>
+                <span className="text-rose-700 font-bold ml-0.5">×</span>
+              </button>
+            )}
+            {isHampirPenuhActive && (
+              <button
+                type="button"
+                onClick={() => handleToggleQuickFilter('hampir_penuh')}
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-orange-50 text-orange-900 border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+                </svg>
+                <span>Hampir Penuh</span>
+                <span className="text-orange-700 font-bold ml-0.5">×</span>
+              </button>
+            )}
+            {isBanyakDicariActive && (
+              <button
+                type="button"
+                onClick={() => handleToggleQuickFilter('banyak_dicari')}
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-neutral-100 text-neutral-900 border border-neutral-300 hover:bg-neutral-200 transition-colors cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 text-neutral-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <span>Banyak Dicari</span>
+                <span className="text-neutral-700 font-bold ml-0.5">×</span>
+              </button>
             )}
           </div>
         </div>
       )}
 
       {/* Search & Sort Controls */}
-      <div className="bg-white rounded-2xl md:rounded-3xl border border-neutral-100/90 shadow-md p-3 sm:p-4 md:p-5 ring-1 ring-black/5">
+      <div className="bg-white rounded-2xl md:rounded-3xl border border-neutral-100/90 shadow-md p-3 sm:p-4 md:p-5 ring-1 ring-black/5 space-y-3.5 sm:space-y-4">
         <div className="flex flex-col md:flex-row items-stretch md:items-center border border-neutral-200/90 rounded-xl md:rounded-2xl bg-neutral-50/40 hover:bg-neutral-50/70 transition-colors divide-y md:divide-y-0 md:divide-x divide-neutral-200/90 shadow-2xs">
           <div className="flex-1 min-w-0">
             <SearchBar 
@@ -241,6 +319,74 @@ export default function FilterResultsClient({
               className="py-3 px-4 rounded-b-xl md:rounded-none md:rounded-r-2xl"
             />
           </div>
+        </div>
+
+        {/* Quick Filter Pills (Single Select) */}
+        <div className="flex items-center gap-2 overflow-x-auto py-1 px-0.5 scrollbar-hide">
+          {/* Promo */}
+          <button
+            onClick={() => handleToggleQuickFilter('promo')}
+            type="button"
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer ${
+              isPromoActive
+                ? 'bg-amber-500 text-white shadow-sm ring-2 ring-amber-400/40 border border-amber-600/30'
+                : 'bg-neutral-100 text-neutral-700 border border-neutral-200/80 hover:bg-neutral-200/80 hover:text-neutral-900'
+            }`}
+          >
+            <svg className={`w-4 h-4 shrink-0 ${isPromoActive ? 'text-white' : 'text-amber-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Promo
+          </button>
+
+          {/* Flash Sale */}
+          <button
+            onClick={() => handleToggleQuickFilter('flash_sale')}
+            type="button"
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer ${
+              isFlashSaleActive
+                ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-400/40 border border-rose-700/30'
+                : 'bg-neutral-100 text-neutral-700 border border-neutral-200/80 hover:bg-neutral-200/80 hover:text-neutral-900'
+            }`}
+          >
+            <svg className={`w-4 h-4 shrink-0 ${isFlashSaleActive ? 'text-white' : 'text-rose-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Flash Sale
+          </button>
+
+          {/* Hampir Penuh */}
+          <button
+            onClick={() => handleToggleQuickFilter('hampir_penuh')}
+            type="button"
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer ${
+              isHampirPenuhActive
+                ? 'bg-orange-500 text-white shadow-sm ring-2 ring-orange-400/40 border border-orange-600/30'
+                : 'bg-neutral-100 text-neutral-700 border border-neutral-200/80 hover:bg-neutral-200/80 hover:text-neutral-900'
+            }`}
+          >
+            <svg className={`w-4 h-4 shrink-0 ${isHampirPenuhActive ? 'text-white' : 'text-orange-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+            </svg>
+            Hampir Penuh
+          </button>
+
+          {/* Banyak Dicari */}
+          <button
+            onClick={() => handleToggleQuickFilter('banyak_dicari')}
+            type="button"
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer ${
+              isBanyakDicariActive
+                ? 'bg-neutral-900 text-white shadow-sm ring-2 ring-neutral-700/40 border border-neutral-950'
+                : 'bg-neutral-100 text-neutral-700 border border-neutral-200/80 hover:bg-neutral-200/80 hover:text-neutral-900'
+            }`}
+          >
+            <svg className={`w-4 h-4 shrink-0 ${isBanyakDicariActive ? 'text-white' : 'text-neutral-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            Banyak Dicari
+          </button>
         </div>
       </div>
 
@@ -273,14 +419,3 @@ export default function FilterResultsClient({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-

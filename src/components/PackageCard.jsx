@@ -21,7 +21,9 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
   const name = schedule.jadwal_nama;
   const price = schedule.harga_quad;
   const originalPrice = schedule.harga_coret;
-  const isPromo = schedule.is_promo || (originalPrice && originalPrice > price);
+  const today = new Date().toISOString().split('T')[0];
+  const isPromoExpired = schedule.promo_until && schedule.promo_until < today;
+  const isPromo = Boolean(schedule.is_promo && !isPromoExpired);
 
   const departureStr = formatDate(schedule.berangkat_tanggal);
   const returnStr = formatDate(schedule.pulang_tanggal);

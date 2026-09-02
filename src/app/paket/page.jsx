@@ -74,6 +74,9 @@ export default async function PaketFilterPage({ searchParams }) {
     harga: params?.harga || '',
     maskapai: params?.maskapai || '',
     promo: params?.promo || '',
+    flash_sale: params?.flash_sale || '',
+    hampir_penuh: params?.hampir_penuh || '',
+    banyak_dicari: params?.banyak_dicari || '',
   };
 
   if (!brandId) {
