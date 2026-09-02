@@ -517,7 +517,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
   }
 
   return (
-    <div className="space-y-6" style={{ '--brand-primary': activeColor }}>
+    <div className="space-y-6 pb-20 sm:pb-0" style={{ '--brand-primary': activeColor }}>
       {/* Alert Modal */}
       {alertMsg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
@@ -765,18 +765,21 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                 </div>
               </div>
 
-              <div className="pt-4">
-                <button
-                  type="button"
-                  onClick={goToStep2}
-                  disabled={totalReguler <= 0}
-                  className="btn-brand-cta w-full py-4 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <span>Lanjut: Isi Data Jamaah</span>
-                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
-                </button>
+              {/* Sticky Bottom Action on Mobile / Inline on Desktop */}
+              <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md p-3.5 sm:p-0 sm:static sm:bg-transparent sm:border-0 sm:backdrop-blur-none shadow-[0_-4px_20px_rgba(0,0,0,0.08)] sm:shadow-none sm:pt-4">
+                <div className="container mx-auto max-w-4xl px-0 sm:px-0">
+                  <button
+                    type="button"
+                    onClick={goToStep2}
+                    disabled={totalReguler <= 0}
+                    className="btn-brand-cta w-full py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+                  >
+                    <span>Lanjut: Isi Data Jamaah</span>
+                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1200,25 +1203,27 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                 </div>
               )}
 
-              {/* Action Buttons Step 2 */}
-              <div className="flex items-center gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="px-6 py-3.5 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer"
-                >
-                  Kembali
-                </button>
-                <button
-                  type="button"
-                  onClick={goToStep3}
-                  className="btn-brand-cta flex-1 py-3.5 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Lanjut ke Konfirmasi</span>
-                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
-                </button>
+              {/* Sticky Bottom Action on Mobile / Inline on Desktop */}
+              <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md p-3.5 sm:p-0 sm:static sm:bg-transparent sm:border-0 sm:backdrop-blur-none shadow-[0_-4px_20px_rgba(0,0,0,0.08)] sm:shadow-none sm:pt-4">
+                <div className="container mx-auto max-w-4xl px-0 sm:px-0 flex items-center gap-2.5 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="px-5 sm:px-6 py-3.5 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer shrink-0"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToStep3}
+                    className="btn-brand-cta flex-1 py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                  >
+                    <span>Lanjut ke Konfirmasi</span>
+                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1433,23 +1438,25 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                 </div>
               </div>
 
-              {/* Action Buttons Step 3 */}
-              <div className="flex items-center gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="px-6 py-3.5 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer"
-                >
-                  Kembali
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmitBooking}
-                  disabled={loading || !agree}
-                  className="btn-brand-cta flex-1 py-3.5 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  {loading ? 'Memproses Booking...' : 'Konfirmasi & Lanjut Pembayaran'}
-                </button>
+              {/* Sticky Bottom Action on Mobile / Inline on Desktop */}
+              <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md p-3.5 sm:p-0 sm:static sm:bg-transparent sm:border-0 sm:backdrop-blur-none shadow-[0_-4px_20px_rgba(0,0,0,0.08)] sm:shadow-none sm:pt-4">
+                <div className="container mx-auto max-w-4xl px-0 sm:px-0 flex items-center gap-2.5 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="px-5 sm:px-6 py-3.5 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer shrink-0"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmitBooking}
+                    disabled={loading || !agree}
+                    className="btn-brand-cta flex-1 py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+                  >
+                    {loading ? 'Memproses Booking...' : 'Konfirmasi & Lanjut Pembayaran'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
