@@ -474,16 +474,31 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
 
   // Submit Booking (Step 3 -> Step 4)
   const handleSubmitBooking = async () => {
-    if (picPin.length !== 6 || !/^\d{6}$/.test(picPin)) {
+    if (phoneCheckStatus === 'baru') {
+      if (picPin.length !== 6 || !/^\d{6}$/.test(picPin)) {
+        setStep(2);
+        showAlert('PIN Portal Jamaah wajib 6 digit angka.');
+        return;
+      }
+      if (picPin !== picPinConfirm) {
+        setStep(2);
+        showAlert('Konfirmasi PIN tidak sesuai.');
+        return;
+      }
+    } else if (phoneCheckStatus === 'perlu_pin') {
+      if (picPinVerify.length !== 6 || !/^\d{6}$/.test(picPinVerify)) {
+        setStep(2);
+        showAlert('PIN Portal Jamaah wajib 6 digit angka.');
+        return;
+      }
+    } else if (phoneCheckStatus === 'tanpa_pin') {
+      // Tidak ada validasi PIN
+    } else {
       setStep(2);
-      showAlert('PIN Portal Jamaah wajib 6 digit angka.');
+      showAlert('Nomor WhatsApp belum terverifikasi.');
       return;
     }
-    if (picPin !== picPinConfirm) {
-      setStep(2);
-      showAlert('Konfirmasi PIN tidak sesuai.');
-      return;
-    }
+
     if (!agree) {
       showAlert('Anda harus menyetujui Syarat & Ketentuan pendaftaran.');
       return;
@@ -551,7 +566,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
           email: picEmail.trim() || undefined,
           jenis_kelamin: picGender || 'L',
           room_type: picRoomType,
-          portal_pin: picPin,
+          portal_pin: phoneCheckStatus === 'baru' ? picPin : (phoneCheckStatus === 'perlu_pin' ? picPinVerify : ''),
         },
         anggota: anggota,
       };
@@ -593,7 +608,14 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
-      showAlert(err.message || 'Gagal mengirim formulir booking. Silakan coba lagi.');
+      const msg = err.message || 'Gagal mengirim formulir booking. Silakan coba lagi.';
+      if (
+        msg.includes('nomor atau PIN tidak cocok') ||
+        msg.includes('nomor tidak dapat digunakan')
+      ) {
+        setStep(2);
+      }
+      showAlert(msg);
     } finally {
       setLoading(false);
     }
