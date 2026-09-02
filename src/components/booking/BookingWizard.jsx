@@ -797,7 +797,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
               </div>
 
               {/* Section Jamaah Utama */}
-              <div className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
+              <div id="section-jamaah-utama" className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
                 <div className="pb-2 border-b border-neutral-100">
                   <h3 className="font-bold text-neutral-800 text-sm">
                     Jamaah Utama
@@ -805,19 +805,6 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   <p className="text-xs text-neutral-500 mt-0.5">
                     Penanggung jawab booking dan pemegang akun Portal Jamaah.
                   </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                    No. WhatsApp <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={picPhone}
-                    onChange={(e) => setPicPhone(e.target.value.replace(/\D/g, ''))}
-                    placeholder="08123456789"
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
-                  />
                 </div>
 
                 <div>
@@ -830,6 +817,19 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                     onChange={(e) => setPicNama(e.target.value)}
                     placeholder="Contoh: Muhammad Ahmad"
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                    No. WhatsApp <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={picPhone}
+                    onChange={(e) => setPicPhone(e.target.value.replace(/\D/g, ''))}
+                    placeholder="08123456789"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
                   />
                 </div>
 
@@ -874,84 +874,80 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                           </span>
                           {isPic && (
                             <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200">
-                              KONTAK UTAMA
+                              JAMAAH UTAMA
                             </span>
                           )}
                         </div>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                            Nama Lengkap (Sesuai KTP/Paspor) <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={isPic ? picNama : (jamaahQuad[idx]?.nama || '')}
-                            onChange={(e) => {
-                              if (isPic) setPicNama(e.target.value);
-                              else {
-                                const arr = [...jamaahQuad];
-                                arr[idx] = { ...arr[idx], nama: e.target.value };
-                                setJamaahQuad(arr);
-                              }
-                            }}
-                            placeholder="Contoh: Muhammad Ahmad"
-                            className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {isPic ? (
                           <div>
-                            <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                              Jenis Kelamin <span className="text-red-500">*</span>
-                            </label>
-                            <CustomSelect
-                              value={isPic ? picGender : (jamaahQuad[idx]?.jenis_kelamin || '')}
-                              onChange={(val) => {
-                                if (isPic) setPicGender(val);
-                                else {
+                            <div className={`text-sm font-bold ${picNama.trim() ? 'text-neutral-900' : 'text-neutral-400 font-normal italic'}`}>
+                              {picNama.trim() || 'Belum diisi'}
+                            </div>
+                            <p className="text-xs text-neutral-500 mt-1">
+                              Data diisi di bagian Jamaah Utama di atas.{' '}
+                              <button
+                                type="button"
+                                onClick={() => document.getElementById('section-jamaah-utama')?.scrollIntoView({ behavior: 'smooth' })}
+                                className="font-semibold text-neutral-800 underline hover:text-neutral-950 cursor-pointer"
+                              >
+                                Ubah di Jamaah Utama
+                              </button>
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                                Nama Lengkap (Sesuai KTP/Paspor) <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={jamaahQuad[idx]?.nama || ''}
+                                onChange={(e) => {
                                   const arr = [...jamaahQuad];
-                                  arr[idx] = { ...arr[idx], jenis_kelamin: val };
+                                  arr[idx] = { ...arr[idx], nama: e.target.value };
                                   setJamaahQuad(arr);
-                                }
-                              }}
-                            />
-                          </div>
+                                }}
+                                placeholder="Contoh: Muhammad Ahmad"
+                                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                              />
+                            </div>
 
-                          <div>
-                            <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                              No. WhatsApp {isPic ? <span className="text-red-500">*</span> : <span className="text-neutral-400 font-normal">(Opsional)</span>}
-                            </label>
-                            <input
-                              type="tel"
-                              value={isPic ? picPhone : (jamaahQuad[idx]?.no_hp || '')}
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, '');
-                                if (isPic) setPicPhone(val);
-                                else {
-                                  const arr = [...jamaahQuad];
-                                  arr[idx] = { ...arr[idx], no_hp: val };
-                                  setJamaahQuad(arr);
-                                }
-                              }}
-                              placeholder="08123456789"
-                              className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
-                            />
-                          </div>
-                        </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                              <div>
+                                <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                                  Jenis Kelamin <span className="text-red-500">*</span>
+                                </label>
+                                <CustomSelect
+                                  value={jamaahQuad[idx]?.jenis_kelamin || ''}
+                                  onChange={(val) => {
+                                    const arr = [...jamaahQuad];
+                                    arr[idx] = { ...arr[idx], jenis_kelamin: val };
+                                    setJamaahQuad(arr);
+                                  }}
+                                />
+                              </div>
 
-                        {isPic && (
-                          <div>
-                            <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                              Email <span className="text-neutral-400 font-normal">(Opsional)</span>
-                            </label>
-                            <input
-                              type="email"
-                              value={picEmail}
-                              onChange={(e) => setPicEmail(e.target.value)}
-                              placeholder="Misal: budi@gmail.com"
-                              className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
-                            />
-                          </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                                  No. WhatsApp <span className="text-neutral-400 font-normal">(Opsional)</span>
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={jamaahQuad[idx]?.no_hp || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    const arr = [...jamaahQuad];
+                                    arr[idx] = { ...arr[idx], no_hp: val };
+                                    setJamaahQuad(arr);
+                                  }}
+                                  placeholder="08123456789"
+                                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
+                                />
+                              </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     );
@@ -977,84 +973,80 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                           </span>
                           {isPic && (
                             <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200">
-                              KONTAK UTAMA
+                              JAMAAH UTAMA
                             </span>
                           )}
                         </div>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                            Nama Lengkap (Sesuai KTP/Paspor) <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={isPic ? picNama : (jamaahTriple[idx]?.nama || '')}
-                            onChange={(e) => {
-                              if (isPic) setPicNama(e.target.value);
-                              else {
-                                const arr = [...jamaahTriple];
-                                arr[idx] = { ...arr[idx], nama: e.target.value };
-                                setJamaahTriple(arr);
-                              }
-                            }}
-                            placeholder="Contoh: Nama Lengkap"
-                            className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {isPic ? (
                           <div>
-                            <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                              Jenis Kelamin <span className="text-red-500">*</span>
-                            </label>
-                            <CustomSelect
-                              value={isPic ? picGender : (jamaahTriple[idx]?.jenis_kelamin || '')}
-                              onChange={(val) => {
-                                if (isPic) setPicGender(val);
-                                else {
+                            <div className={`text-sm font-bold ${picNama.trim() ? 'text-neutral-900' : 'text-neutral-400 font-normal italic'}`}>
+                              {picNama.trim() || 'Belum diisi'}
+                            </div>
+                            <p className="text-xs text-neutral-500 mt-1">
+                              Data diisi di bagian Jamaah Utama di atas.{' '}
+                              <button
+                                type="button"
+                                onClick={() => document.getElementById('section-jamaah-utama')?.scrollIntoView({ behavior: 'smooth' })}
+                                className="font-semibold text-neutral-800 underline hover:text-neutral-950 cursor-pointer"
+                              >
+                                Ubah di Jamaah Utama
+                              </button>
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                                Nama Lengkap (Sesuai KTP/Paspor) <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={jamaahTriple[idx]?.nama || ''}
+                                onChange={(e) => {
                                   const arr = [...jamaahTriple];
-                                  arr[idx] = { ...arr[idx], jenis_kelamin: val };
+                                  arr[idx] = { ...arr[idx], nama: e.target.value };
                                   setJamaahTriple(arr);
-                                }
-                              }}
-                            />
-                          </div>
+                                }}
+                                placeholder="Contoh: Nama Lengkap"
+                                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                              />
+                            </div>
 
-                          <div>
-                            <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                              No. WhatsApp {isPic ? <span className="text-red-500">*</span> : <span className="text-neutral-400 font-normal">(Opsional)</span>}
-                            </label>
-                            <input
-                              type="tel"
-                              value={isPic ? picPhone : (jamaahTriple[idx]?.no_hp || '')}
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, '');
-                                if (isPic) setPicPhone(val);
-                                else {
-                                  const arr = [...jamaahTriple];
-                                  arr[idx] = { ...arr[idx], no_hp: val };
-                                  setJamaahTriple(arr);
-                                }
-                              }}
-                              placeholder="08123456789"
-                              className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
-                            />
-                          </div>
-                        </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                              <div>
+                                <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                                  Jenis Kelamin <span className="text-red-500">*</span>
+                                </label>
+                                <CustomSelect
+                                  value={jamaahTriple[idx]?.jenis_kelamin || ''}
+                                  onChange={(val) => {
+                                    const arr = [...jamaahTriple];
+                                    arr[idx] = { ...arr[idx], jenis_kelamin: val };
+                                    setJamaahTriple(arr);
+                                  }}
+                                />
+                              </div>
 
-                        {isPic && (
-                          <div>
-                            <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                              Email <span className="text-neutral-400 font-normal">(Opsional)</span>
-                            </label>
-                            <input
-                              type="email"
-                              value={picEmail}
-                              onChange={(e) => setPicEmail(e.target.value)}
-                              placeholder="Misal: budi@gmail.com"
-                              className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
-                            />
-                          </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                                  No. WhatsApp <span className="text-neutral-400 font-normal">(Opsional)</span>
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={jamaahTriple[idx]?.no_hp || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    const arr = [...jamaahTriple];
+                                    arr[idx] = { ...arr[idx], no_hp: val };
+                                    setJamaahTriple(arr);
+                                  }}
+                                  placeholder="08123456789"
+                                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
+                                />
+                              </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     );
@@ -1080,84 +1072,80 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                           </span>
                           {isPic && (
                             <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200">
-                              KONTAK UTAMA
+                              JAMAAH UTAMA
                             </span>
                           )}
                         </div>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                            Nama Lengkap (Sesuai KTP/Paspor) <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={isPic ? picNama : (jamaahDouble[idx]?.nama || '')}
-                            onChange={(e) => {
-                              if (isPic) setPicNama(e.target.value);
-                              else {
-                                const arr = [...jamaahDouble];
-                                arr[idx] = { ...arr[idx], nama: e.target.value };
-                                setJamaahDouble(arr);
-                              }
-                            }}
-                            placeholder="Contoh: Nama Lengkap"
-                            className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {isPic ? (
                           <div>
-                            <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                              Jenis Kelamin <span className="text-red-500">*</span>
-                            </label>
-                            <CustomSelect
-                              value={isPic ? picGender : (jamaahDouble[idx]?.jenis_kelamin || '')}
-                              onChange={(val) => {
-                                if (isPic) setPicGender(val);
-                                else {
+                            <div className={`text-sm font-bold ${picNama.trim() ? 'text-neutral-900' : 'text-neutral-400 font-normal italic'}`}>
+                              {picNama.trim() || 'Belum diisi'}
+                            </div>
+                            <p className="text-xs text-neutral-500 mt-1">
+                              Data diisi di bagian Jamaah Utama di atas.{' '}
+                              <button
+                                type="button"
+                                onClick={() => document.getElementById('section-jamaah-utama')?.scrollIntoView({ behavior: 'smooth' })}
+                                className="font-semibold text-neutral-800 underline hover:text-neutral-950 cursor-pointer"
+                              >
+                                Ubah di Jamaah Utama
+                              </button>
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                                Nama Lengkap (Sesuai KTP/Paspor) <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={jamaahDouble[idx]?.nama || ''}
+                                onChange={(e) => {
                                   const arr = [...jamaahDouble];
-                                  arr[idx] = { ...arr[idx], jenis_kelamin: val };
+                                  arr[idx] = { ...arr[idx], nama: e.target.value };
                                   setJamaahDouble(arr);
-                                }
-                              }}
-                            />
-                          </div>
+                                }}
+                                placeholder="Contoh: Nama Lengkap"
+                                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                              />
+                            </div>
 
-                          <div>
-                            <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                              No. WhatsApp {isPic ? <span className="text-red-500">*</span> : <span className="text-neutral-400 font-normal">(Opsional)</span>}
-                            </label>
-                            <input
-                              type="tel"
-                              value={isPic ? picPhone : (jamaahDouble[idx]?.no_hp || '')}
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, '');
-                                if (isPic) setPicPhone(val);
-                                else {
-                                  const arr = [...jamaahDouble];
-                                  arr[idx] = { ...arr[idx], no_hp: val };
-                                  setJamaahDouble(arr);
-                                }
-                              }}
-                              placeholder="08123456789"
-                              className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
-                            />
-                          </div>
-                        </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                              <div>
+                                <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                                  Jenis Kelamin <span className="text-red-500">*</span>
+                                </label>
+                                <CustomSelect
+                                  value={jamaahDouble[idx]?.jenis_kelamin || ''}
+                                  onChange={(val) => {
+                                    const arr = [...jamaahDouble];
+                                    arr[idx] = { ...arr[idx], jenis_kelamin: val };
+                                    setJamaahDouble(arr);
+                                  }}
+                                />
+                              </div>
 
-                        {isPic && (
-                          <div>
-                            <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                              Email <span className="text-neutral-400 font-normal">(Opsional)</span>
-                            </label>
-                            <input
-                              type="email"
-                              value={picEmail}
-                              onChange={(e) => setPicEmail(e.target.value)}
-                              placeholder="Misal: budi@gmail.com"
-                              className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
-                            />
-                          </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                                  No. WhatsApp <span className="text-neutral-400 font-normal">(Opsional)</span>
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={jamaahDouble[idx]?.no_hp || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    const arr = [...jamaahDouble];
+                                    arr[idx] = { ...arr[idx], no_hp: val };
+                                    setJamaahDouble(arr);
+                                  }}
+                                  placeholder="08123456789"
+                                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
+                                />
+                              </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     );
