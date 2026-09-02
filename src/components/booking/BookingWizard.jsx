@@ -319,6 +319,16 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
       const autoType = counts.quad === 1 ? 'Quad' : (counts.triple === 1 ? 'Triple' : 'Double');
       setPicRoomType(autoType);
       setPicSlotIndex(0);
+    } else if (picRoomType) {
+      let currentCount = 0;
+      if (picRoomType === 'Quad') currentCount = counts.quad;
+      else if (picRoomType === 'Triple') currentCount = counts.triple;
+      else if (picRoomType === 'Double') currentCount = counts.double;
+
+      if (currentCount === 0 || picSlotIndex >= currentCount) {
+        setPicRoomType('');
+        setPicSlotIndex(null);
+      }
     }
 
     setStep(2);
