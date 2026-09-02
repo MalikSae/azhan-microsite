@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 // Format Rupiah Helper
@@ -92,6 +93,7 @@ function CustomSelect({ value, onChange, placeholder = 'Pilih Jenis Kelamin' }) 
 }
 
 export default function BookingWizard({ schedule, brandName, brandColor, brandId, initialBankAccounts = [], travelAccounts = [] }) {
+  const router = useRouter();
   // Active step: 1 (Kamar), 2 (Data Jamaah), 3 (Konfirmasi), 4 (Pembayaran)
   const [step, setStep] = useState(1);
 
@@ -450,8 +452,13 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
       } catch (e) {}
 
       setBookingResult(resultData);
-      setStep(4);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Redirect ke Digital Invoice URL permanen
+      if (data.booking?.booking_code) {
+        router.push(`/invoice/${data.booking.booking_code}`);
+      } else {
+        setStep(4);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } catch (err) {
       showAlert(err.message || 'Gagal mengirim formulir booking. Silakan coba lagi.');
     } finally {
