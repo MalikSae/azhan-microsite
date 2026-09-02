@@ -110,6 +110,8 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
   const [picGender, setPicGender] = useState('');
   const [picPhone, setPicPhone] = useState('');
   const [picEmail, setPicEmail] = useState('');
+  const [picRoomType, setPicRoomType] = useState('');
+  const [picSlotIndex, setPicSlotIndex] = useState(null);
 
   // Additional Jamaah details
   const [jamaahQuad, setJamaahQuad] = useState([]);
@@ -215,6 +217,44 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
     });
   };
 
+  // Change PIC Room Type & select first empty slot
+  const handleRoomTypeChange = (newType) => {
+    if (!newType) {
+      setPicRoomType('');
+      setPicSlotIndex(null);
+      return;
+    }
+
+    let targetArr = [];
+    let targetCount = 0;
+    if (newType === 'Quad') {
+      targetArr = jamaahQuad;
+      targetCount = counts.quad;
+    } else if (newType === 'Triple') {
+      targetArr = jamaahTriple;
+      targetCount = counts.triple;
+    } else if (newType === 'Double') {
+      targetArr = jamaahDouble;
+      targetCount = counts.double;
+    }
+
+    let emptyIdx = -1;
+    for (let i = 0; i < targetCount; i++) {
+      const isCurrentPicSlot = picRoomType === newType && picSlotIndex === i;
+      if (isCurrentPicSlot || !targetArr[i]?.nama?.trim()) {
+        emptyIdx = i;
+        break;
+      }
+    }
+
+    if (emptyIdx !== -1) {
+      setPicRoomType(newType);
+      setPicSlotIndex(emptyIdx);
+    } else {
+      showAlert('Semua slot kamar ini sudah terisi.');
+    }
+  };
+
   // Navigation: Step 1 -> Step 2
   const goToStep2 = () => {
     if (totalReguler <= 0) {
@@ -239,12 +279,22 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
       Array.from({ length: counts.infant }, (_, i) => prev[i] || { nama: '', jenis_kelamin: '', tanggal_lahir: '' })
     );
 
+    if (totalReguler === 1) {
+      const autoType = counts.quad === 1 ? 'Quad' : (counts.triple === 1 ? 'Triple' : 'Double');
+      setPicRoomType(autoType);
+      setPicSlotIndex(0);
+    }
+
     setStep(2);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Navigation: Step 2 -> Step 3
   const goToStep3 = () => {
+    if (!picRoomType) {
+      showAlert('Pilih tipe kamar untuk Jamaah Utama.');
+      return;
+    }
     if (!picNama.trim()) {
       showAlert('Nama lengkap Pemesan (Jamaah 1) wajib diisi.');
       return;
@@ -261,7 +311,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
 
     // Validasi Jamaah Quad
     for (let i = 0; i < counts.quad; i++) {
-      const isPic = i === 0;
+      const isPic = picRoomType === 'Quad' && picSlotIndex === i;
       const j = isPic ? { nama: picNama, jenis_kelamin: picGender } : jamaahQuad[i];
       if (!j?.nama?.trim()) {
         showAlert(`Nama Jamaah ke-${i + 1} (Kamar Quad) wajib diisi.`);
@@ -276,7 +326,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
     // Validasi Jamaah Triple
     let offsetTriple = counts.quad;
     for (let i = 0; i < counts.triple; i++) {
-      const isPic = counts.quad === 0 && i === 0;
+      const isPic = picRoomType === 'Triple' && picSlotIndex === i;
       const j = isPic ? { nama: picNama, jenis_kelamin: picGender } : jamaahTriple[i];
       if (!j?.nama?.trim()) {
         showAlert(`Nama Jamaah ke-${offsetTriple + i + 1} (Kamar Triple) wajib diisi.`);
@@ -291,7 +341,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
     // Validasi Jamaah Double
     let offsetDouble = counts.quad + counts.triple;
     for (let i = 0; i < counts.double; i++) {
-      const isPic = counts.quad === 0 && counts.triple === 0 && i === 0;
+      const isPic = picRoomType === 'Double' && picSlotIndex === i;
       const j = isPic ? { nama: picNama, jenis_kelamin: picGender } : jamaahDouble[i];
       if (!j?.nama?.trim()) {
         showAlert(`Nama Jamaah ke-${offsetDouble + i + 1} (Kamar Double) wajib diisi.`);
@@ -352,30 +402,23 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
     setLoading(true);
 
     try {
-      // Determine PIC Room Type
-      let picRoomType = 'Quad';
-      if (counts.quad > 0) picRoomType = 'Quad';
-      else if (counts.triple > 0) picRoomType = 'Triple';
-      else if (counts.double > 0) picRoomType = 'Double';
-
       const anggota = [];
 
       // Anggota Quad (selain PIC)
-      if (counts.quad > 0) {
-        for (let i = 1; i < counts.quad; i++) {
-          anggota.push({
-            pax_type: 'reguler',
-            nama_lengkap: (jamaahQuad[i]?.nama || '').trim(),
-            no_hp: jamaahQuad[i]?.no_hp ? jamaahQuad[i].no_hp.replace(/\D/g, '') : undefined,
-            jenis_kelamin: jamaahQuad[i]?.jenis_kelamin || 'L',
-            room_type: 'Quad',
-          });
-        }
+      for (let i = 0; i < counts.quad; i++) {
+        if (picRoomType === 'Quad' && picSlotIndex === i) continue;
+        anggota.push({
+          pax_type: 'reguler',
+          nama_lengkap: (jamaahQuad[i]?.nama || '').trim(),
+          no_hp: jamaahQuad[i]?.no_hp ? jamaahQuad[i].no_hp.replace(/\D/g, '') : undefined,
+          jenis_kelamin: jamaahQuad[i]?.jenis_kelamin || 'L',
+          room_type: 'Quad',
+        });
       }
 
-      // Anggota Triple
-      const startTriple = counts.quad === 0 ? 1 : 0;
-      for (let i = startTriple; i < counts.triple; i++) {
+      // Anggota Triple (selain PIC)
+      for (let i = 0; i < counts.triple; i++) {
+        if (picRoomType === 'Triple' && picSlotIndex === i) continue;
         anggota.push({
           pax_type: 'reguler',
           nama_lengkap: (jamaahTriple[i]?.nama || '').trim(),
@@ -385,9 +428,9 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
         });
       }
 
-      // Anggota Double
-      const startDouble = counts.quad === 0 && counts.triple === 0 ? 1 : 0;
-      for (let i = startDouble; i < counts.double; i++) {
+      // Anggota Double (selain PIC)
+      for (let i = 0; i < counts.double; i++) {
+        if (picRoomType === 'Double' && picSlotIndex === i) continue;
         anggota.push({
           pax_type: 'reguler',
           nama_lengkap: (jamaahDouble[i]?.nama || '').trim(),
@@ -478,7 +521,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
   let paxIndex = 1;
 
   for (let i = 0; i < counts.quad; i++) {
-    const isPic = i === 0;
+    const isPic = picRoomType === 'Quad' && picSlotIndex === i;
     summaryJamaahList.push({
       num: paxIndex++,
       nama: isPic ? picNama : (jamaahQuad[i]?.nama || `Jamaah ${paxIndex - 1}`),
@@ -488,7 +531,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
   }
 
   for (let i = 0; i < counts.triple; i++) {
-    const isPic = counts.quad === 0 && i === 0;
+    const isPic = picRoomType === 'Triple' && picSlotIndex === i;
     summaryJamaahList.push({
       num: paxIndex++,
       nama: isPic ? picNama : (jamaahTriple[i]?.nama || `Jamaah ${paxIndex - 1}`),
@@ -498,7 +541,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
   }
 
   for (let i = 0; i < counts.double; i++) {
-    const isPic = counts.quad === 0 && counts.triple === 0 && i === 0;
+    const isPic = picRoomType === 'Double' && picSlotIndex === i;
     summaryJamaahList.push({
       num: paxIndex++,
       nama: isPic ? picNama : (jamaahDouble[i]?.nama || `Jamaah ${paxIndex - 1}`),
@@ -855,6 +898,24 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
                   />
                 </div>
+
+                {totalReguler > 1 && (
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                      Pilih Kamar <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={picRoomType}
+                      onChange={(e) => handleRoomTypeChange(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white cursor-pointer"
+                    >
+                      <option value="">-- Pilih Tipe Kamar --</option>
+                      {counts.quad > 0 && <option value="Quad">QUAD (Sekamar ber-4)</option>}
+                      {counts.triple > 0 && <option value="Triple">TRIPLE (Sekamar ber-3)</option>}
+                      {counts.double > 0 && <option value="Double">DOUBLE (Sekamar ber-2)</option>}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Grup Kamar QUAD */}
@@ -865,7 +926,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   </span>
 
                   {Array.from({ length: counts.quad }).map((_, idx) => {
-                    const isPic = idx === 0;
+                    const isPic = picRoomType === 'Quad' && picSlotIndex === idx;
                     return (
                       <div key={`q_${idx}`} className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
                         <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
@@ -963,7 +1024,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   </span>
 
                   {Array.from({ length: counts.triple }).map((_, idx) => {
-                    const isPic = counts.quad === 0 && idx === 0;
+                    const isPic = picRoomType === 'Triple' && picSlotIndex === idx;
                     const paxNum = counts.quad + idx + 1;
                     return (
                       <div key={`t_${idx}`} className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
@@ -1062,7 +1123,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   </span>
 
                   {Array.from({ length: counts.double }).map((_, idx) => {
-                    const isPic = counts.quad === 0 && counts.triple === 0 && idx === 0;
+                    const isPic = picRoomType === 'Double' && picSlotIndex === idx;
                     const paxNum = counts.quad + counts.triple + idx + 1;
                     return (
                       <div key={`d_${idx}`} className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
@@ -1265,7 +1326,8 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   <button
                     type="button"
                     onClick={goToStep3}
-                    className="btn-brand-cta flex-1 py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                    disabled={!picRoomType}
+                    className="btn-brand-cta flex-1 py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <span>Lanjut ke Konfirmasi</span>
                     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
