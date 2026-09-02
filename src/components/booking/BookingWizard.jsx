@@ -796,6 +796,67 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                 </p>
               </div>
 
+              {/* Section Jamaah Utama */}
+              <div className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
+                <div className="pb-2 border-b border-neutral-100">
+                  <h3 className="font-bold text-neutral-800 text-sm">
+                    Jamaah Utama
+                  </h3>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    Penanggung jawab booking dan pemegang akun Portal Jamaah.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                    No. WhatsApp <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={picPhone}
+                    onChange={(e) => setPicPhone(e.target.value.replace(/\D/g, ''))}
+                    placeholder="08123456789"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                    Nama Lengkap <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={picNama}
+                    onChange={(e) => setPicNama(e.target.value)}
+                    placeholder="Contoh: Muhammad Ahmad"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                    Jenis Kelamin <span className="text-red-500">*</span>
+                  </label>
+                  <CustomSelect
+                    value={picGender}
+                    onChange={(val) => setPicGender(val)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                    Email <span className="text-neutral-400 font-normal">(Opsional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={picEmail}
+                    onChange={(e) => setPicEmail(e.target.value)}
+                    placeholder="Misal: budi@gmail.com"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                  />
+                </div>
+              </div>
+
               {/* Grup Kamar QUAD */}
               {counts.quad > 0 && (
                 <div className="space-y-3">
