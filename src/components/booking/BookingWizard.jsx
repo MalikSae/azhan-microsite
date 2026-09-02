@@ -112,6 +112,9 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
   const [picEmail, setPicEmail] = useState('');
   const [picRoomType, setPicRoomType] = useState('');
   const [picSlotIndex, setPicSlotIndex] = useState(null);
+  const [phoneCheckStatus, setPhoneCheckStatus] = useState('idle');
+  // 'idle' | 'checking' | 'baru' | 'perlu_pin' | 'tanpa_pin' | 'error'
+  const [lastCheckedPhone, setLastCheckedPhone] = useState('');
 
   // Additional Jamaah details
   const [jamaahQuad, setJamaahQuad] = useState([]);
@@ -124,6 +127,8 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
   const [picPinConfirm, setPicPinConfirm] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [showPinConfirm, setShowPinConfirm] = useState(false);
+  const [picPinVerify, setPicPinVerify] = useState('');
+  const [showPinVerify, setShowPinVerify] = useState(false);
   const [agree, setAgree] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState('demo-turnstile-token');
 
@@ -289,6 +294,43 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
     setPicRoomType(newType);
     setPicSlotIndex(0);
     setPendingRoomSwap(null);
+  };
+
+  // Check WhatsApp phone registration status
+  const checkPhone = async (phone) => {
+    const clean = (phone || '').replace(/\D/g, '');
+    if (clean.length < 10) {
+      setPhoneCheckStatus('idle');
+      return;
+    }
+
+    setPhoneCheckStatus('checking');
+    try {
+      const targetBrandId = schedule?.brand_id || brandId || 1;
+      const res = await fetch('/api/public/jamaah/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brand_id: targetBrandId,
+          no_hp: clean,
+        }),
+      });
+
+      if (!res.ok) {
+        setPhoneCheckStatus('error');
+        setLastCheckedPhone(clean);
+        showAlert('Gagal memeriksa nomor, coba lagi sebentar lagi.');
+        return;
+      }
+
+      const data = await res.json();
+      setPhoneCheckStatus(data.status || 'error');
+      setLastCheckedPhone(clean);
+    } catch (err) {
+      setPhoneCheckStatus('error');
+      setLastCheckedPhone(clean);
+      showAlert('Gagal memeriksa nomor, coba lagi sebentar lagi.');
+    }
   };
 
   // Navigation: Step 1 -> Step 2
@@ -950,7 +992,14 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   <input
                     type="tel"
                     value={picPhone}
-                    onChange={(e) => setPicPhone(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setPicPhone(val);
+                      if (val !== lastCheckedPhone) {
+                        setPhoneCheckStatus('idle');
+                      }
+                    }}
+                    onBlur={() => checkPhone(picPhone)}
                     placeholder="08123456789"
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
                   />
@@ -979,36 +1028,152 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   />
                 </div>
 
-                <div className="pt-2 border-t border-neutral-100">
-                  <div className="mb-3">
-                    <h4 className="font-bold text-neutral-800 text-xs sm:text-sm">
-                      Buat PIN Akun Portal Jamaah
-                    </h4>
-                    <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">
-                      Akses informasi perjalanan, pembayaran, visa, tiket, manasik, dan persiapan umroh Anda dalam satu tempat.
-                    </p>
+                {/* Cabang 1: Checking */}
+                {phoneCheckStatus === 'checking' && (
+                  <div className="pt-2 border-t border-neutral-100 flex items-center gap-2 text-xs text-neutral-500 py-1 animate-in fade-in duration-100">
+                    <svg className="w-4 h-4 animate-spin text-neutral-400 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Memeriksa nomor...</span>
                   </div>
+                )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Cabang 2: Baru (Buat PIN + Konfirmasi PIN) */}
+                {phoneCheckStatus === 'baru' && (
+                  <div className="pt-2 border-t border-neutral-100 animate-in fade-in duration-150">
+                    <div className="mb-3">
+                      <h4 className="font-bold text-neutral-800 text-xs sm:text-sm">
+                        Buat PIN Akun Portal Jamaah
+                      </h4>
+                      <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">
+                        Akses informasi perjalanan, pembayaran, visa, tiket, manasik, dan persiapan umroh Anda dalam satu tempat.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                          Buat 6 Digit PIN <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPin ? 'text' : 'password'}
+                            maxLength={6}
+                            value={picPin}
+                            onChange={(e) => setPicPin(e.target.value.replace(/\D/g, ''))}
+                            placeholder="Masukkan 6 digit angka"
+                            className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPin(!showPin)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                          >
+                            {showPin ? (
+                              <svg className="w-4 h-4 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                          Konfirmasi 6 Digit PIN <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          {(() => {
+                            const isPinComplete = picPin.length === 6;
+                            const isConfirmComplete = picPinConfirm.length === 6;
+                            const isMatch = isPinComplete && isConfirmComplete && picPin === picPinConfirm;
+                            const isMismatch = isConfirmComplete && picPin !== picPinConfirm;
+
+                            return (
+                              <>
+                                <input
+                                  type={showPinConfirm ? 'text' : 'password'}
+                                  maxLength={6}
+                                  value={picPinConfirm}
+                                  onChange={(e) => setPicPinConfirm(e.target.value.replace(/\D/g, ''))}
+                                  placeholder="Ulangi 6 digit PIN"
+                                  className={`w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10 ${
+                                    isMatch
+                                      ? 'border-emerald-500 ring-1 ring-emerald-500'
+                                      : isMismatch
+                                      ? 'border-red-500 ring-1 ring-red-500'
+                                      : ''
+                                  }`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPinConfirm(!showPinConfirm)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                                >
+                                  {showPinConfirm ? (
+                                    <svg className="w-4 h-4 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-4 h-4 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                  )}
+                                </button>
+                              </>
+                            );
+                          })()}
+                        </div>
+                        {picPin.length === 6 && picPinConfirm.length === 6 && picPin === picPinConfirm && (
+                          <p className="text-[10.5px] text-emerald-600 font-medium mt-1 flex items-center gap-1 animate-in fade-in duration-100">
+                            <svg className="w-3.5 h-3.5 text-emerald-600 stroke-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>PIN sesuai</span>
+                          </p>
+                        )}
+                        {picPinConfirm.length === 6 && picPin !== picPinConfirm && (
+                          <p className="text-[10.5px] text-red-600 font-normal mt-1 flex items-center gap-1 animate-in fade-in duration-100">
+                            <svg className="w-3.5 h-3.5 text-red-500 stroke-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            <span>Konfirmasi PIN tidak sesuai</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Cabang 3: Perlu PIN */}
+                {phoneCheckStatus === 'perlu_pin' && (
+                  <div className="pt-2 border-t border-neutral-100 space-y-2 animate-in fade-in duration-150">
                     <div>
                       <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                        Buat 6 Digit PIN <span className="text-red-500">*</span>
+                        Masukkan PIN Portal Jamaah Anda <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <input
-                          type={showPin ? 'text' : 'password'}
+                          type={showPinVerify ? 'text' : 'password'}
                           maxLength={6}
-                          value={picPin}
-                          onChange={(e) => setPicPin(e.target.value.replace(/\D/g, ''))}
+                          value={picPinVerify}
+                          onChange={(e) => setPicPinVerify(e.target.value.replace(/\D/g, ''))}
                           placeholder="Masukkan 6 digit angka"
                           className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10"
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPin(!showPin)}
+                          onClick={() => setShowPinVerify(!showPinVerify)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
                         >
-                          {showPin ? (
+                          {showPinVerify ? (
                             <svg className="w-4 h-4 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
                             </svg>
@@ -1021,73 +1186,20 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                         </button>
                       </div>
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                        Konfirmasi 6 Digit PIN <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        {(() => {
-                          const isPinComplete = picPin.length === 6;
-                          const isConfirmComplete = picPinConfirm.length === 6;
-                          const isMatch = isPinComplete && isConfirmComplete && picPin === picPinConfirm;
-                          const isMismatch = isConfirmComplete && picPin !== picPinConfirm;
-
-                          return (
-                            <>
-                              <input
-                                type={showPinConfirm ? 'text' : 'password'}
-                                maxLength={6}
-                                value={picPinConfirm}
-                                onChange={(e) => setPicPinConfirm(e.target.value.replace(/\D/g, ''))}
-                                placeholder="Ulangi 6 digit PIN"
-                                className={`w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10 ${
-                                  isMatch
-                                    ? 'border-emerald-500 ring-1 ring-emerald-500'
-                                    : isMismatch
-                                    ? 'border-red-500 ring-1 ring-red-500'
-                                    : ''
-                                }`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPinConfirm(!showPinConfirm)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
-                              >
-                                {showPinConfirm ? (
-                                  <svg className="w-4 h-4 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-4 h-4 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
-                                )}
-                              </button>
-                            </>
-                          );
-                        })()}
-                      </div>
-                      {picPin.length === 6 && picPinConfirm.length === 6 && picPin === picPinConfirm && (
-                        <p className="text-[10.5px] text-emerald-600 font-medium mt-1 flex items-center gap-1 animate-in fade-in duration-100">
-                          <svg className="w-3.5 h-3.5 text-emerald-600 stroke-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span>PIN sesuai</span>
-                        </p>
-                      )}
-                      {picPinConfirm.length === 6 && picPin !== picPinConfirm && (
-                        <p className="text-[10.5px] text-red-600 font-normal mt-1 flex items-center gap-1 animate-in fade-in duration-100">
-                          <svg className="w-3.5 h-3.5 text-red-500 stroke-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          <span>Konfirmasi PIN tidak sesuai</span>
-                        </p>
-                      )}
-                    </div>
+                    <p className="text-[11px] text-neutral-500 leading-relaxed">
+                      Nomor ini sudah terdaftar. Masukkan PIN akun Anda untuk melanjutkan. Lupa PIN? Hubungi admin travel atau gunakan nomor lain.
+                    </p>
                   </div>
-                </div>
+                )}
+
+                {/* Cabang 4: Tanpa PIN */}
+                {phoneCheckStatus === 'tanpa_pin' && (
+                  <div className="pt-2 border-t border-neutral-100 animate-in fade-in duration-150">
+                    <p className="text-xs text-neutral-600 leading-relaxed">
+                      Nomor ini sudah terdaftar. Akses Portal Jamaah akan diatur oleh admin travel setelah booking selesai.
+                    </p>
+                  </div>
+                )}
 
                 {totalReguler > 1 && (
                   <div>
@@ -1516,7 +1628,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   <button
                     type="button"
                     onClick={goToStep3}
-                    disabled={!picRoomType}
+                    disabled={!picRoomType || phoneCheckStatus === 'idle' || phoneCheckStatus === 'checking' || phoneCheckStatus === 'error'}
                     className="btn-brand-cta flex-1 py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <span>Lanjut ke Konfirmasi</span>
