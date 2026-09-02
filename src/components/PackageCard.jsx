@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -53,24 +53,24 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
     <div className="block relative bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100/80 hover:shadow-xl hover:border-neutral-200 transition-all duration-300 group">
       
       {isPromo && (
-        <div className="absolute top-0 right-0 overflow-hidden w-28 h-28 pointer-events-none z-10">
-          <div className="absolute transform rotate-45 bg-gradient-to-r from-rose-600 via-red-600 to-rose-600 text-white font-black text-[10px] tracking-widest py-1 -right-8 top-5 w-32 text-center shadow-md uppercase border-b border-white/20">
+        <div className="absolute top-0 right-0 overflow-hidden w-24 h-24 xs:w-28 xs:h-28 pointer-events-none z-10">
+          <div className="absolute transform rotate-45 bg-gradient-to-r from-rose-600 via-red-600 to-rose-600 text-white font-black text-[9px] xs:text-[10px] tracking-widest py-0.5 xs:py-1 -right-9 top-4 xs:-right-8 xs:top-5 w-28 xs:w-32 text-center shadow-md uppercase border-b border-white/20">
             PROMO
           </div>
         </div>
       )}
 
       {/* Konten Card Utama */}
-      <div className="p-5 md:p-6 pb-4">
+      <div className="p-4 xs:p-5 md:p-6 pb-4">
         {/* Baris 1: Judul & Durasi */}
-        <div className={`mb-4 ${isPromo ? 'pr-12' : ''}`}>
-          <h3 className="text-[17px] md:text-[19px] font-black text-neutral-900 leading-snug mb-2 group-hover:text-brand transition-colors line-clamp-2">
+        <div className={`mb-3 xs:mb-4 ${isPromo ? 'pr-8 xs:pr-12' : ''}`}>
+          <h3 className="text-base xs:text-[17px] md:text-[19px] font-black text-neutral-900 leading-snug mb-2 group-hover:text-brand transition-colors line-clamp-2">
             <Link href={`/paket/${packageSlug}`} className="focus:outline-none focus:ring-2 focus:ring-brand rounded">
               {name}
             </Link>
           </h3>
           
-          <div className="flex items-center gap-2.5 text-xs text-neutral-500 font-medium bg-neutral-50 inline-flex px-2.5 py-1.5 rounded-lg border border-neutral-100">
+          <div className="flex items-center gap-1.5 xs:gap-2.5 text-[11px] xs:text-xs text-neutral-500 font-medium bg-neutral-50 inline-flex px-2 xs:px-2.5 py-1 xs:py-1.5 rounded-lg border border-neutral-100">
             <div className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               <span>{departureStr} {schedule.pulang_tanggal ? `- ${returnStr}` : ''}</span>
@@ -85,11 +85,11 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
         </div>
 
         {/* Baris 2: Fasilitas Utama (Maskapai & Hotel) */}
-        <div className="bg-neutral-50/50 rounded-2xl p-3.5 mb-4 border border-neutral-100 space-y-3">
+        <div className="bg-neutral-50/50 rounded-2xl p-3 xs:p-3.5 mb-4 border border-neutral-100 space-y-2.5 xs:space-y-3">
           {/* Maskapai */}
-          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-neutral-200/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-white border border-neutral-200 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-neutral-200/60 flex-wrap xs:flex-nowrap">
+            <div className="flex items-center gap-2 xs:gap-2.5 min-w-0">
+              <div className="w-6 h-6 xs:w-7 xs:h-7 rounded-lg bg-white border border-neutral-200 flex items-center justify-center p-1 shrink-0 overflow-hidden">
                 {airlineLogoUrl && !airlineLogoError ? (
                   <img 
                     src={airlineLogoUrl} 
@@ -102,7 +102,7 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
                 )}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider leading-none mb-0.5">Penerbangan</span>
+                <span className="text-[9px] xs:text-[10px] text-neutral-400 font-medium uppercase tracking-wider leading-none mb-0.5">Penerbangan</span>
                 <span className="font-bold text-neutral-800 text-xs truncate">
                   {schedule.maskapai?.name || 'Maskapai'}
                 </span>
@@ -111,36 +111,38 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
             
             <div className="flex items-center gap-1 shrink-0">
               {schedule.is_ticket_confirmed && (
-                <span className="text-[8.5px] font-bold text-white bg-emerald-500 px-1.5 py-[2px] rounded-full flex items-center gap-0.5 shadow-2xs tracking-tight">
+                <span className="text-[8px] xs:text-[8.5px] font-bold text-white bg-emerald-500 px-1.5 py-[2px] rounded-full flex items-center gap-0.5 shadow-2xs tracking-tight">
                   <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1.25 13.5l-4-4 1.5-1.5 2.5 2.5 5.5-5.5 1.5 1.5-7 7z" clipRule="evenodd"/></svg>
-                  Tiket Confirmed
+                  <span>Tiket Confirmed</span>
                 </span>
               )}
               {schedule.is_direct_flight && (
-                <span className="text-[8.5px] font-bold text-white bg-orange-500 px-1.5 py-[2px] rounded-full flex items-center gap-0.5 shadow-2xs tracking-tight">
+                <span className="text-[8px] xs:text-[8.5px] font-bold text-white bg-orange-500 px-1.5 py-[2px] rounded-full flex items-center gap-0.5 shadow-2xs tracking-tight">
                   <svg className="w-2.5 h-2.5 transform rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
-                  Direct
+                  <span>Direct</span>
                 </span>
               )}
             </div>
           </div>
 
           {/* Hotels */}
-          <div className="flex gap-3 relative">
+          <div className="flex gap-2 xs:gap-3 relative">
             <div className="absolute left-1/2 top-1 bottom-1 w-px bg-neutral-200/60 -translate-x-1/2 hidden xs:block"></div>
             
-            <div className="flex-1 min-w-0 flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-brand-light text-brand flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            <div className="flex-1 min-w-0 flex items-start gap-2 xs:gap-2.5">
+              <div className="w-6 h-6 xs:w-7 xs:h-7 rounded-lg bg-brand-light text-brand flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                <svg className="w-3 xs:w-3.5 h-3 xs:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
               </div>
               <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider mb-0.5 truncate">Hotel Mekkah</span>
+                <span className="text-[9px] xs:text-[10px] text-neutral-400 font-medium uppercase tracking-wider mb-0.5 truncate">
+                  <span className="hidden xs:inline">Hotel </span>Mekkah
+                </span>
                 {schedule.hotel_mekkah?.name ? (
                   <>
                     <span className="font-bold text-neutral-800 text-xs leading-tight mb-1 truncate block" title={schedule.hotel_mekkah.name}>
                       {schedule.hotel_mekkah.name}
                     </span>
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1 xs:gap-1.5 flex-wrap">
                       {schedule.hotel_mekkah.star_rating > 0 && (
                         <div className="flex gap-0.5 shrink-0">
                           {[...Array(5)].map((_, i) => (
@@ -148,7 +150,7 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
                           ))}
                         </div>
                       )}
-                      <span className="text-[9px] font-medium text-neutral-500 truncate">
+                      <span className="text-[8.5px] xs:text-[9px] font-medium text-neutral-500 truncate">
                         (±{schedule.hotel_mekkah.distance_m || '500'}m)
                       </span>
                     </div>
@@ -159,12 +161,14 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
               </div>
             </div>
 
-            <div className="flex-1 min-w-0 flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-brand-light text-brand flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            <div className="flex-1 min-w-0 flex items-start gap-2 xs:gap-2.5">
+              <div className="w-6 h-6 xs:w-7 xs:h-7 rounded-lg bg-brand-light text-brand flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                <svg className="w-3 xs:w-3.5 h-3 xs:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
               </div>
               <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider mb-0.5 truncate">Hotel Madinah</span>
+                <span className="text-[9px] xs:text-[10px] text-neutral-400 font-medium uppercase tracking-wider mb-0.5 truncate">
+                  <span className="hidden xs:inline">Hotel </span>Madinah
+                </span>
                 {schedule.hotel_madinah?.name ? (
                   <>
                     <span className="font-bold text-neutral-800 text-xs leading-tight mb-1 truncate block" title={schedule.hotel_madinah.name}>
@@ -178,7 +182,7 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
                           ))}
                         </div>
                       )}
-                      <span className="text-[9px] font-medium text-neutral-500 truncate">
+                      <span className="text-[8.5px] xs:text-[9px] font-medium text-neutral-500 truncate">
                         (±{schedule.hotel_madinah.distance_m || '350'}m)
                       </span>
                     </div>
@@ -204,44 +208,42 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
       </div>
 
       {/* Baris 4: Footer Harga & Tombol Aksi */}
-      <div className="p-4 bg-neutral-50/60 border-t border-neutral-100 flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
-              Mulai Dari
-            </span>
-            {discountText && (
-              <div 
-                className="relative inline-flex items-center bg-red-600 text-white font-black text-[9px] uppercase tracking-tight py-0.5 pl-2.5 pr-2 rounded-r shadow-2xs leading-none"
-                style={{
-                  clipPath: 'polygon(5px 0%, 100% 0%, 100% 100%, 5px 100%, 0% 50%)'
-                }}
-              >
-                <span>{discountText}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-lg md:text-xl font-black text-neutral-900 font-sans tracking-tight">
-              {formatRupiah(price)}
-            </span>
-            {isPromo && originalPrice > price && (
-              <span className="text-xs text-rose-500 font-medium line-through decoration-rose-500">
+      <div className="p-3.5 xs:p-4 bg-neutral-50/60 border-t border-neutral-100 flex items-center justify-between gap-2 xs:gap-3">
+        <div className="min-w-0">
+          {isPromo && originalPrice > price && (
+            <div className="flex items-center gap-1.5 xs:gap-2 mb-0.5 xs:mb-1 flex-wrap">
+              <span className="text-[11px] xs:text-xs text-rose-500 font-medium line-through decoration-rose-500">
                 {formatRupiah(originalPrice)}
               </span>
-            )}
+              {discountText && (
+                <div 
+                  className="relative inline-flex items-center bg-red-600 text-white font-black text-[8.5px] xs:text-[9px] uppercase tracking-tight py-0.5 pl-2 xs:pl-2.5 pr-1.5 xs:pr-2 rounded-r shadow-2xs leading-none"
+                  style={{
+                    clipPath: 'polygon(5px 0%, 100% 0%, 100% 100%, 5px 100%, 0% 50%)'
+                  }}
+                >
+                  <span>{discountText}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-base xs:text-lg md:text-xl font-black text-neutral-900 font-sans tracking-tight">
+              {formatRupiah(price)}
+            </span>
           </div>
         </div>
 
-        {/* Tombol CTA -> Buka Halaman Detail */}
+        {/* Tombol CTA -> Buka Halaman Detail (Icon-only di ultra-sempit, Full text di xs+) */}
         <Link
           href={`/paket/${packageSlug}`}
-          className="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs hover:-translate-y-0.5 active:scale-95 shrink-0"
+          aria-label={`Lihat detail paket ${name}`}
+          className="inline-flex items-center justify-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs p-2.5 xs:px-4 xs:py-2.5 rounded-xl transition-all shadow-xs hover:-translate-y-0.5 active:scale-95 shrink-0"
         >
-          <span>Lihat Detail</span>
+          <span className="hidden xs:inline">Lihat Detail</span>
           <svg 
-            className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" 
+            className="w-4 h-4 xs:w-3.5 xs:h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" 
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor"

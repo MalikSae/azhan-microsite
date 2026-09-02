@@ -34,11 +34,6 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
-:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--brand-primary, #B87A3A) 45%, white);
-  outline-offset: 2px;
-}
-
 /* Custom utility classes untuk warna dinamis brand dari CSS variable --brand-primary */
 .bg-brand {
   background-color: var(--brand-primary, #B87A3A);
@@ -63,11 +58,15 @@ textarea {
 }
 
 .border-brand {
-  border-color: var(--brand-primary, #B87A3A);
+  border-color: var(--brand-primary, #B87A3A) !important;
+}
+
+.hover\:border-brand:hover {
+  border-color: var(--brand-primary, #B87A3A) !important;
 }
 
 .focus\:border-brand:focus {
-  border-color: var(--brand-primary, #B87A3A);
+  border-color: var(--brand-primary, #B87A3A) !important;
 }
 
 .focus\:ring-brand:focus {
@@ -155,7 +154,6 @@ textarea {
 @media (min-width: 640px) { .portal-page { padding: 1.5rem; } }
 @media (min-width: 1024px) { .portal-page { padding: 2rem; } }
 
-
 /* Interactive Button CTAs */
 .btn-brand-cta {
   background-color: var(--brand-primary, #B87A3A) !important;
@@ -195,25 +193,16 @@ textarea {
 .btn-wa-cta:active {
   transform: translateY(0) scale(0.96);
 }
+
 /* Clean Single-Line Brand Focus & Hover for Inputs */
 .input-brand {
-  border: 1.5px solid #E2E8F0 !important;
+  border: 1px solid #E2E8F0 !important;
   outline: none !important;
   box-shadow: none !important;
   transition: border-color 0.15s ease-in-out;
 }
 
 .input-brand:hover,
-.input-brand:focus {
-  border-color: var(--brand-primary, #990000) !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-.input-brand:hover {
-  border-color: var(--brand-primary, #B87A3A) !important;
-}
-
 .input-brand:focus {
   border-color: var(--brand-primary, #B87A3A) !important;
   outline: none !important;

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -322,7 +322,7 @@ export default function FilterResultsClient({
         </div>
 
         {/* Quick Filter Pills (Single Select) */}
-        <div className="flex items-center gap-2 overflow-x-auto py-1 px-0.5 scrollbar-hide">
+        <div className="flex items-center gap-2 overflow-x-auto py-1 px-0.5 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* Promo */}
           <button
             onClick={() => handleToggleQuickFilter('promo')}

@@ -101,14 +101,14 @@ function PackageAutocompleteDropdown({
         {label}
       </label>
 
-      {/* Tombol Pemicu Custom Dropdown (100% Identik dengan Field Login) */}
+      {/* Tombol Pemicu Custom Dropdown */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-3 rounded-xl border bg-white text-left flex items-center justify-between gap-2.5 transition-all cursor-pointer shadow-xs ${
+        className={`w-full px-4 py-3 rounded-xl border bg-white text-left flex items-center justify-between gap-2.5 transition-colors cursor-pointer outline-none focus:outline-none focus:ring-0 ${
           isOpen
-            ? 'border-brand ring-2 ring-brand/15'
-            : 'border-neutral-300 hover:border-neutral-400'
+            ? 'border-brand'
+            : 'border-neutral-200 hover:border-brand focus:border-brand'
         }`}
       >
         <div className="min-w-0 flex-1">
@@ -151,7 +151,7 @@ function PackageAutocompleteDropdown({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Cari paket, maskapai, tanggal..."
-                className="w-full px-4 py-2.5 pl-10 rounded-xl border border-neutral-300 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-2xs"
+                className="w-full px-4 py-2.5 pl-10 rounded-xl border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 outline-none focus:outline-none focus:ring-0 focus:border-brand hover:border-brand transition-colors"
               />
               {searchTerm && (
                 <button
