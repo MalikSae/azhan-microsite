@@ -65,8 +65,8 @@ export function PortalAuthProvider({ children }) {
     initAuth();
   }, []);
 
-  const login = async (brandId, namaLengkap, idJamaah) => {
-    const data = await portalLogin(brandId, namaLengkap, idJamaah);
+  const login = async (brandId, idJamaah, portalPin) => {
+    const data = await portalLogin(brandId, idJamaah, portalPin);
     if (typeof window !== 'undefined') {
       localStorage.setItem('portal_access_token', data.access_token);
     }

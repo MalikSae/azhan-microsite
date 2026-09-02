@@ -14,13 +14,13 @@ const authHeaders = () => {
   return headers;
 };
 
-export async function portalLogin(brandId, namaLengkap, idJamaah) {
+export async function portalLogin(brandId, idJamaah, portalPin) {
   const res = await fetch(`${API_BASE_URL}/api/portal/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       brand_id: Number(brandId),
-      nama_lengkap: namaLengkap,
+      portal_pin: portalPin,
       id_jamaah: idJamaah,
     }),
   });

@@ -11,7 +11,7 @@ export default function PortalLoginPage() {
   const { brandId, brandName, brandLogo } = useBrand();
   const { jamaah, isLoading: authLoading, login } = usePortalAuth();
 
-  const [namaLengkap, setNamaLengkap] = useState('');
+  const [portalPin, setPortalPin] = useState('');
   const [idJamaah, setIdJamaah] = useState('');
   const [errorMessage, setErrorMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,10 +38,10 @@ export default function PortalLoginPage() {
 
     setIsSubmitting(true);
     try {
-      await login(brandId, namaLengkap.trim(), idJamaah.trim().toUpperCase());
+      await login(brandId, idJamaah.trim().toUpperCase(), portalPin.trim());
       router.push('/portal');
     } catch (err) {
-      setErrorMessage(err.message || 'Nama atau ID jamaah tidak cocok');
+      setErrorMessage(err.message || 'ID jamaah atau PIN tidak cocok');
     } finally {
       setIsSubmitting(false);
     }
@@ -95,15 +95,15 @@ export default function PortalLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="nama_lengkap" className="block text-xs font-semibold text-neutral-700 uppercase tracking-wider mb-1.5">
-                Nama Lengkap
+              <label htmlFor="portal_pin" className="block text-xs font-semibold text-neutral-700 uppercase tracking-wider mb-1.5">
+                PIN Portal
               </label>
               <input
-                id="nama_lengkap"
-                type="text"
-                value={namaLengkap}
-                onChange={(e) => setNamaLengkap(e.target.value)}
-                placeholder="Sesuai KTP / Paspor"
+                id="portal_pin"
+                type="password"
+                value={portalPin}
+                onChange={(e) => setPortalPin(e.target.value)}
+                placeholder="Masukkan 6 digit PIN"
                 required
                 className="w-full px-4 py-3 rounded-xl border border-neutral-300 text-neutral-900 placeholder-neutral-400 text-base focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
               />
