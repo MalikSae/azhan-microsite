@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { BrandProvider } from '@/context/BrandContext';
 import { PortalAuthProvider } from '@/context/PortalAuthContext';
+import PortalShell from '@/components/PortalShell';
 
 export default async function PortalLayout({ children }) {
   const headerList = await headers();
@@ -21,7 +22,9 @@ export default async function PortalLayout({ children }) {
   return (
     <BrandProvider value={brandContextValue}>
       <PortalAuthProvider>
-        {children}
+        <PortalShell>
+          {children}
+        </PortalShell>
       </PortalAuthProvider>
     </BrandProvider>
   );
