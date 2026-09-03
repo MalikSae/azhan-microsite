@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { DM_Sans } from 'next/font/google';
 import './globals.css';
+import PwaServiceWorker from '@/components/PwaServiceWorker';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -60,6 +61,12 @@ export async function generateMetadata() {
       icon: [{ url: brandIcon }],
       shortcut: [{ url: brandIcon }],
       apple: [{ url: brandIcon }],
+    },
+    manifest: '/manifest.webmanifest',
+    appleWebApp: {
+      capable: true,
+      title: brandName,
+      statusBarStyle: 'default',
     },
     openGraph: {
       type: 'website',
@@ -163,6 +170,7 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body className={`antialiased text-neutral-900 min-h-screen bg-neutral-50 ${dmSans.className}`} suppressHydrationWarning>
+        <PwaServiceWorker />
         {children}
       </body>
     </html>
