@@ -16,7 +16,7 @@ const NavIcon = ({ children }) => <svg viewBox="0 0 24 24" fill="none" stroke="c
 export default function PortalMobileShell({ children }) {
   const pathname = usePathname();
   const { brandName, brandLogo } = useBrand();
-  const isLogin = pathname === '/portal/login';
+  const isAuthPage = pathname === '/portal/login' || pathname === '/portal/aktivasi';
   const showPageHeader = ['/portal', '/portal/dokumen', '/portal/pembayaran', '/portal/profil'].includes(pathname);
   const pageTitles = {
     '/portal': 'Beranda',
@@ -27,7 +27,7 @@ export default function PortalMobileShell({ children }) {
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const logoUrl = brandLogo?.startsWith('/') ? `${apiBaseUrl}${brandLogo}` : brandLogo;
 
-  if (isLogin) return children;
+  if (isAuthPage) return children;
 
   return (
     <div className="min-h-dvh bg-[#f5f7fa] pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
