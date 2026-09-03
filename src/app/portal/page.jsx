@@ -236,10 +236,10 @@ export default function PortalDashboardPage() {
   const stepperNodes = selectedBooking
     ? [
         { label: 'Paspor', done: Boolean(selectedBooking.progress_paspor) },
+        { label: 'Manasik', done: Boolean(selectedBooking.progress_manasik) },
         { label: 'Visa', done: Boolean(selectedBooking.progress_visa) },
         { label: 'Tiket', done: Boolean(selectedBooking.progress_tiket) },
         { label: 'Hotel', done: Boolean(selectedBooking.progress_hotel) },
-        { label: 'Manasik', done: Boolean(selectedBooking.progress_manasik) },
         {
           label: 'Lainnya',
           isSpecial: true,
