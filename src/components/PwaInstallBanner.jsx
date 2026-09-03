@@ -9,13 +9,15 @@ const isStandalone = () => (
 
 const isIos = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 
-export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId = 'default' }) {
+export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId = 'default', brandLogoUrl = '' }) {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [visible, setVisible] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [iosDevice, setIosDevice] = useState(false);
   const [iconFailed, setIconFailed] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
   const brandIconUrl = `/brand-icon?brand=${encodeURIComponent(brandId)}`;
+  const imageUrl = brandLogoUrl && !logoFailed ? brandLogoUrl : brandIconUrl;
 
   useEffect(() => {
     if (isStandalone()) return undefined;
@@ -56,8 +58,8 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
 
   return (
     <aside className="border-b border-neutral-200 bg-brand-soft px-4 py-3 sm:px-6" aria-label="Install aplikasi">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 sm:gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-white p-1.5 shadow-sm" aria-hidden="true">
+      <div className="relative mx-auto flex max-w-7xl flex-wrap items-center gap-3 sm:flex-nowrap sm:gap-4">
+        <div className="flex h-11 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-white px-2 py-1.5 shadow-sm sm:h-12 sm:w-24" aria-hidden="true">
           {iconFailed ? (
             <svg viewBox="0 0 24 24" className="h-5 w-5 text-brand" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3v12" />
@@ -66,19 +68,22 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
             </svg>
           ) : (
             <img
-              src={brandIconUrl}
+              src={imageUrl}
               alt=""
               className="h-full w-full object-contain"
-              onError={() => setIconFailed(true)}
+              onError={() => {
+                if (brandLogoUrl && !logoFailed) setLogoFailed(true);
+                else setIconFailed(true);
+              }}
             />
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-bold leading-5 text-neutral-900 sm:text-sm">
-            Bawa {brandName} di genggaman
+        <div className="min-w-0 flex-1 pr-6 sm:pr-0">
+          <p className="text-xs font-bold leading-5 text-neutral-900 sm:text-sm">
+            Install {brandName}, lebih praktis
           </p>
-          <p className="line-clamp-2 text-[11px] leading-4 text-neutral-600 sm:text-xs sm:leading-5">
-            Akses jadwal, booking, dan info perjalanan lebih cepat—cukup satu ketukan.
+          <p className="text-[11px] leading-4 text-neutral-600 sm:text-xs sm:leading-5">
+            Cek jadwal, booking, dan info perjalanan lebih cepat—cukup satu ketukan.
           </p>
           <div className="mt-1 hidden items-center gap-2 text-[10px] font-semibold text-brand sm:flex">
             <span>Akses 1 ketukan</span>
@@ -89,7 +94,7 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
         <button
           type="button"
           onClick={handleInstall}
-          className="shrink-0 rounded-lg bg-brand px-3 py-2 text-[11px] font-bold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 sm:px-4 sm:text-xs"
+          className="basis-full rounded-lg bg-brand px-3 py-2 text-[11px] font-bold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 sm:basis-auto sm:px-4 sm:text-xs"
         >
           {installPrompt ? 'Install sekarang' : 'Lihat cara install'}
         </button>
@@ -97,7 +102,7 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
           type="button"
           onClick={() => setVisible(false)}
           aria-label="Tutup banner install"
-          className="shrink-0 rounded-md p-1 text-neutral-500 transition hover:bg-white/70 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand"
+          className="absolute right-0 top-0 shrink-0 rounded-md p-1 text-neutral-500 transition hover:bg-white/70 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand sm:static"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="m6 6 12 12M18 6 6 18" />
