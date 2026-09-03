@@ -9,11 +9,13 @@ const isStandalone = () => (
 
 const isIos = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 
-export default function PwaInstallBanner({ brandName = 'Travel Umroh' }) {
+export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId = 'default' }) {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [visible, setVisible] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [iosDevice, setIosDevice] = useState(false);
+  const [iconFailed, setIconFailed] = useState(false);
+  const brandIconUrl = `/brand-icon?brand=${encodeURIComponent(brandId)}`;
 
   useEffect(() => {
     if (isStandalone()) return undefined;
@@ -53,25 +55,43 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh' }) {
   };
 
   return (
-    <aside className="border-b border-neutral-200 bg-brand-soft px-4 py-2.5 sm:px-6" aria-label="Install aplikasi">
-      <div className="mx-auto flex max-w-7xl items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-white" aria-hidden="true">
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3v12" />
-            <path d="m7 10 5 5 5-5" />
-            <path d="M5 21h14" />
-          </svg>
+    <aside className="border-b border-neutral-200 bg-brand-soft px-4 py-3 sm:px-6" aria-label="Install aplikasi">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 sm:gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-white p-1.5 shadow-sm" aria-hidden="true">
+          {iconFailed ? (
+            <svg viewBox="0 0 24 24" className="h-5 w-5 text-brand" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3v12" />
+              <path d="m7 10 5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+          ) : (
+            <img
+              src={brandIconUrl}
+              alt=""
+              className="h-full w-full object-contain"
+              onError={() => setIconFailed(true)}
+            />
+          )}
         </div>
-        <p className="min-w-0 flex-1 text-xs leading-5 text-neutral-700 sm:text-sm">
-          <span className="font-bold text-neutral-900">Pasang {brandName}</span>
-          <span className="hidden sm:inline"> untuk akses lebih cepat seperti aplikasi.</span>
-        </p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-bold leading-5 text-neutral-900 sm:text-sm">
+            Bawa {brandName} di genggaman
+          </p>
+          <p className="line-clamp-2 text-[11px] leading-4 text-neutral-600 sm:text-xs sm:leading-5">
+            Akses jadwal, booking, dan info perjalanan lebih cepat—cukup satu ketukan.
+          </p>
+          <div className="mt-1 hidden items-center gap-2 text-[10px] font-semibold text-brand sm:flex">
+            <span>Akses 1 ketukan</span>
+            <span className="text-neutral-300">•</span>
+            <span>Tampilan seperti aplikasi</span>
+          </div>
+        </div>
         <button
           type="button"
           onClick={handleInstall}
-          className="shrink-0 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 sm:px-4"
+          className="shrink-0 rounded-lg bg-brand px-3 py-2 text-[11px] font-bold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 sm:px-4 sm:text-xs"
         >
-          {installPrompt ? 'Install' : 'Cara install'}
+          {installPrompt ? 'Install sekarang' : 'Lihat cara install'}
         </button>
         <button
           type="button"
@@ -88,9 +108,9 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh' }) {
       {showHelp && (
         <div className="mx-auto mt-2 max-w-7xl rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-xs leading-5 text-neutral-700 shadow-sm sm:text-sm">
           {iosDevice ? (
-            <p>Di iPhone/iPad: tekan tombol <strong>Bagikan</strong> di browser, lalu pilih <strong>Tambahkan ke Layar Utama</strong>.</p>
+            <p>Install gratis dalam beberapa detik: tekan <strong>Bagikan</strong> di browser, lalu pilih <strong>Tambahkan ke Layar Utama</strong>.</p>
           ) : (
-            <p>Buka menu browser (⋮), lalu pilih <strong>Install aplikasi</strong> atau <strong>Add to Home screen</strong>.</p>
+            <p>Install gratis: buka menu browser (⋮), pilih <strong>Install aplikasi</strong> atau <strong>Add to Home screen</strong>, lalu akses {brandName} langsung dari ikon.</p>
           )}
         </div>
       )}

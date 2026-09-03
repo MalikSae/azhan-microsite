@@ -103,7 +103,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-neutral-50/50">
-      <PwaInstallBanner brandName={brandName} />
+      <PwaInstallBanner brandName={brandName} brandId={brandId} />
       {/* Brand Navigation / Top Header */}
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
