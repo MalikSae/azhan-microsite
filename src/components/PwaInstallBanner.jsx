@@ -57,8 +57,8 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
   };
 
   return (
-    <aside className="border-b border-neutral-200 bg-brand-soft px-4 py-3 sm:px-6" aria-label="Install aplikasi">
-      <div className="relative mx-auto flex max-w-7xl flex-wrap items-center gap-3 sm:flex-nowrap sm:gap-4">
+    <aside className="border-b border-neutral-200 bg-brand-soft px-4 py-3 sm:px-6 md:hidden" aria-label="Install aplikasi">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 sm:flex-nowrap sm:gap-4">
         <div className="flex h-11 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-white px-2 py-1.5 shadow-sm sm:h-12 sm:w-24" aria-hidden="true">
           {iconFailed ? (
             <svg viewBox="0 0 24 24" className="h-5 w-5 text-brand" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -78,7 +78,7 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
             />
           )}
         </div>
-        <div className="min-w-0 flex-1 pr-6 sm:pr-0">
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-bold leading-5 text-neutral-900 sm:text-sm">
             Install {brandName}, lebih praktis
           </p>
@@ -97,16 +97,6 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
           className="basis-full rounded-lg bg-brand px-3 py-2 text-[11px] font-bold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 sm:basis-auto sm:px-4 sm:text-xs"
         >
           {installPrompt ? 'Install sekarang' : 'Lihat cara install'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setVisible(false)}
-          aria-label="Tutup banner install"
-          className="absolute right-0 top-0 shrink-0 rounded-md p-1 text-neutral-500 transition hover:bg-white/70 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand sm:static"
-        >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="m6 6 12 12M18 6 6 18" />
-          </svg>
         </button>
       </div>
 
