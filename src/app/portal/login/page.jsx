@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useBrand } from '@/context/BrandContext';
@@ -15,6 +15,68 @@ export default function PortalLoginPage() {
   const [idJamaah, setIdJamaah] = useState('');
   const [errorMessage, setErrorMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRefs = useRef([]);
+
+  const pinDigits = Array.from({ length: 6 }, (_, i) => portalPin[i] || '');
+
+  const handlePinChange = (e, index) => {
+    const rawVal = e.target.value.replace(/\D/g, '');
+    if (!rawVal) {
+      const chars = pinDigits.slice();
+      chars[index] = '';
+      setPortalPin(chars.join(''));
+      return;
+    }
+
+    if (rawVal.length > 1) {
+      const pasted = rawVal.slice(0, 6);
+      setPortalPin(pasted);
+      const nextIndex = Math.min(pasted.length, 5);
+      inputRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    const char = rawVal.slice(-1);
+    const chars = pinDigits.slice();
+    chars[index] = char;
+    const newPin = chars.join('').slice(0, 6);
+    setPortalPin(newPin);
+
+    if (char && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePinKeyDown = (e, index) => {
+    if (e.key === 'Backspace') {
+      if (!pinDigits[index] && index > 0) {
+        const chars = pinDigits.slice();
+        chars[index - 1] = '';
+        setPortalPin(chars.join(''));
+        inputRefs.current[index - 1]?.focus();
+        e.preventDefault();
+      } else if (pinDigits[index]) {
+        const chars = pinDigits.slice();
+        chars[index] = '';
+        setPortalPin(chars.join(''));
+        e.preventDefault();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePinPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pastedData) {
+      setPortalPin(pastedData);
+      const nextIndex = Math.min(pastedData.length, 5);
+      inputRefs.current[nextIndex]?.focus();
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && jamaah) {
@@ -26,8 +88,8 @@ export default function PortalLoginPage() {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!namaLengkap.trim() || !idJamaah.trim()) {
-      setErrorMessage('Nama lengkap dan ID jamaah wajib diisi');
+    if (!portalPin.trim() || !idJamaah.trim()) {
+      setErrorMessage('PIN dan ID jamaah wajib diisi');
       return;
     }
 
@@ -95,21 +157,6 @@ export default function PortalLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="portal_pin" className="block text-xs font-semibold text-neutral-700 uppercase tracking-wider mb-1.5">
-                PIN Portal
-              </label>
-              <input
-                id="portal_pin"
-                type="password"
-                value={portalPin}
-                onChange={(e) => setPortalPin(e.target.value)}
-                placeholder="Masukkan 6 digit PIN"
-                required
-                className="w-full px-4 py-3 rounded-xl border border-neutral-300 text-neutral-900 placeholder-neutral-400 text-base focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
-              />
-            </div>
-
-            <div>
               <label htmlFor="id_jamaah" className="block text-xs font-semibold text-neutral-700 uppercase tracking-wider mb-1.5">
                 ID Jamaah
               </label>
@@ -124,9 +171,34 @@ export default function PortalLoginPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wider mb-1.5">
+                PIN Portal
+              </label>
+              <div className="grid grid-cols-6 gap-2 sm:gap-2.5">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => { inputRefs.current[index] = el; }}
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
+                    autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                    value={pinDigits[index] || ''}
+                    onChange={(e) => handlePinChange(e, index)}
+                    onKeyDown={(e) => handlePinKeyDown(e, index)}
+                    onPaste={handlePinPaste}
+                    aria-label={`Digit PIN ke-${index + 1}`}
+                    className="h-12 w-full text-center text-lg font-bold rounded-xl border border-neutral-300 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
+                  />
+                ))}
+              </div>
+            </div>
+
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || portalPin.length !== 6 || !idJamaah.trim()}
               className="w-full py-3 px-4 rounded-xl bg-brand text-white font-semibold text-sm hover:brightness-95 active:brightness-90 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
               {isSubmitting ? (
