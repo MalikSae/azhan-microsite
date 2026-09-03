@@ -16,6 +16,13 @@ const progressItems = [
   ['progress_manasik', 'Bimbingan Manasik'], ['progress_siskopatuh', 'Pendaftaran Siskopatuh'],
   ['progress_vaksin_meningitis', 'Vaksin Meningitis'],
 ];
+const paxProgressItems = [
+  ['progress_paspor', 'Paspor'],
+  ['progress_visa', 'Visa'],
+  ['progress_siskopatuh', 'Siskopatuh'],
+  ['progress_manasik', 'Manasik'],
+  ['progress_vaksin_meningitis', 'Vaksin Meningitis'],
+];
 
 function CollapsibleSection({ title, description, summary, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -68,7 +75,90 @@ export default function PortalBookingDetailPage() {
       <div className="rounded-2xl bg-neutral-900 p-4 text-white"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Invoice #INV-{String(booking.id).padStart(5, '0')}</p><h1 className="mt-1 truncate text-lg font-bold">{booking.jadwal_nama}</h1><p className="mt-1 text-xs text-neutral-300">{tanggal(booking.berangkat_tanggal)}</p></div><Badge variant={booking.status === 'lunas' ? 'success' : 'warning'}>{booking.status.toUpperCase()}</Badge></div></div>
 
       <CollapsibleSection title="Informasi Booking" description="Informasi paket, kamar, dan jamaah terdaftar." summary={`${tanggal(booking.berangkat_tanggal)} · Kamar ${booking.room_type}`}>
-        <dl className="grid gap-3"><div className="rounded-xl bg-neutral-50 p-3"><dt className="text-xs text-neutral-400">Tanggal berangkat</dt><dd className="mt-1 text-sm font-bold text-neutral-800">{tanggal(booking.berangkat_tanggal)}</dd></div><div className="grid grid-cols-2 gap-3"><div className="rounded-xl bg-neutral-50 p-3"><dt className="text-xs text-neutral-400">Tipe kamar</dt><dd className="mt-1 text-sm font-bold text-neutral-800">Kamar {booking.room_type}</dd></div><div className="rounded-xl bg-neutral-50 p-3"><dt className="text-xs text-neutral-400">Jamaah</dt><dd className="mt-1 truncate text-sm font-bold text-neutral-800">{booking.nama_jamaah}</dd></div></div></dl>
+        <dl className="grid gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-neutral-50 p-3">
+              <dt className="text-xs text-neutral-400">Tanggal berangkat</dt>
+              <dd className="mt-1 text-sm font-bold text-neutral-800">{tanggal(booking.berangkat_tanggal)}</dd>
+            </div>
+            <div className="rounded-xl bg-neutral-50 p-3">
+              <dt className="text-xs text-neutral-400">Tipe kamar</dt>
+              <dd className="mt-1 text-sm font-bold text-neutral-800">Kamar {booking.room_type}</dd>
+            </div>
+          </div>
+          {booking.pax && booking.pax.length > 0 ? (
+            <div className="rounded-xl bg-neutral-50 p-3">
+              <dt className="text-xs text-neutral-400">Daftar Jamaah ({booking.pax.length} orang)</dt>
+              <dd className="mt-2.5 space-y-2.5">
+                {booking.pax.map((pax, index) => {
+                  const isPic = Boolean(pax.jamaah_id && booking.pic_jamaah_id && pax.jamaah_id === booking.pic_jamaah_id);
+                  const isMe = Boolean(pax.jamaah_id && jamaah?.id && pax.jamaah_id === jamaah.id);
+                  const isBatal = pax.pax_status === 'batal';
+                  const roomLabel = pax.room_type ? (pax.room_type.toLowerCase().startsWith('kamar') ? pax.room_type : `Kamar ${pax.room_type}`) : 'Infant';
+                  const perlengkapanDone = pax.perlengkapan_status === 'sudah_diberikan';
+                  return (
+                    <div
+                      key={pax.id || index}
+                      className={`rounded-xl border p-3 ${
+                        isBatal
+                          ? 'border-neutral-200 bg-neutral-100/60 opacity-60'
+                          : 'border-neutral-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-sm font-bold text-neutral-800">{pax.nama_jamaah}</span>
+                            {isPic && <Badge variant="neutral" showIcon={false}>JAMAAH UTAMA</Badge>}
+                            {isMe && <Badge variant="success" showIcon={false}>SAYA</Badge>}
+                            {isBatal && <Badge variant="danger" showIcon={false}>DIBATALKAN</Badge>}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-xs font-semibold text-neutral-500">{roomLabel}</p>
+                          <p className="text-xs font-bold text-neutral-800">{rupiah(pax.harga_pax)}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {paxProgressItems.map(([key, label]) => {
+                          const ready = Boolean(pax[key]);
+                          return (
+                            <span
+                              key={key}
+                              className={`inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-medium ${
+                                ready
+                                  ? 'border-success-200 bg-success-50 text-success-800'
+                                  : 'border-neutral-200 bg-neutral-50 text-neutral-500'
+                              }`}
+                            >
+                              <span className={`font-bold ${ready ? 'text-success-700' : 'text-neutral-400'}`}>
+                                {ready ? '✓' : '—'}
+                              </span>
+                              <span>{label}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-2 text-[11px]">
+                        <span className={`inline-flex items-center gap-1 ${perlengkapanDone ? 'font-semibold text-success-700' : 'text-neutral-500'}`}>
+                          <span className="font-bold">{perlengkapanDone ? '✓' : '·'}</span>
+                          {perlengkapanDone ? 'Perlengkapan sudah diberikan' : 'Perlengkapan belum diberikan'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </dd>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-neutral-50 p-3">
+              <dt className="text-xs text-neutral-400">Jamaah</dt>
+              <dd className="mt-1 truncate text-sm font-bold text-neutral-800">{booking.nama_jamaah}</dd>
+            </div>
+          )}
+        </dl>
       </CollapsibleSection>
 
       <CollapsibleSection title="Progress Kesiapan" description="Status dokumen dan fasilitas keberangkatan." summary={`${completedProgress} dari ${progressItems.length} tahapan selesai`} defaultOpen>
