@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { usePortalAuth } from '@/context/PortalAuthContext';
 import { useBrand } from '@/context/BrandContext';
 import { listMyBookings, listMyPayments, listMyDokumen } from '@/lib/portalApi';
+import { getPublicSchedules } from '@/lib/api';
 import { formatRupiah, formatTanggalIndo } from '@/lib/portalFormat';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
+import PackageCard from '@/components/PackageCard';
 
 function parseLocalDate(dateStr) {
   if (!dateStr) return null;
@@ -31,6 +33,7 @@ export default function PortalDashboardPage() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [payments, setPayments] = useState([]);
   const [dokumenList, setDokumenList] = useState([]);
+  const [availablePackages, setAvailablePackages] = useState([]);
 
   useEffect(() => {
     if (!isAuthLoading && !jamaah) {
@@ -99,21 +102,24 @@ export default function PortalDashboardPage() {
             if (isMounted) {
               setPayments(Array.isArray(paymentsRes) ? paymentsRes : []);
             }
-          } catch {
-            if (isMounted) {
-              setPayments([]);
-            }
+          } catch (err) {
+            console.error('Gagal mengambil payments:', err);
           }
-        } else {
-          setPayments([]);
+        } else if (brandId) {
+          try {
+            const schedulesRes = await getPublicSchedules(brandId);
+            if (isMounted) {
+              setAvailablePackages(Array.isArray(schedulesRes) ? schedulesRes : []);
+            }
+          } catch (err) {
+            console.error('Gagal mengambil paket publik:', err);
+          }
         }
-
-        setDataLoading(false);
-      } catch {
-        if (isMounted) {
-          setHasError(true);
-          setDataLoading(false);
-        }
+      } catch (err) {
+        console.error('Gagal memuat data portal dashboard:', err);
+        if (isMounted) setHasError(true);
+      } finally {
+        if (isMounted) setDataLoading(false);
       }
     }
 
@@ -122,7 +128,23 @@ export default function PortalDashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [jamaah]);
+  }, [jamaah, brandId]);
+
+  useEffect(() => {
+    if (!selectedBooking && brandId && availablePackages.length === 0) {
+      let isMounted = true;
+      getPublicSchedules(brandId)
+        .then((res) => {
+          if (isMounted && Array.isArray(res)) {
+            setAvailablePackages(res);
+          }
+        })
+        .catch((err) => console.error('Gagal mengambil paket publik:', err));
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [selectedBooking, brandId, availablePackages.length]);
 
   if (isAuthLoading || !jamaah || dataLoading) {
     return (
@@ -339,10 +361,37 @@ export default function PortalDashboardPage() {
             </div>
           </Card>
         ) : (
-          <EmptyState
-            title="Belum Ada Perjalanan"
-            message="Belum ada perjalanan terdaftar untuk akun Anda."
-          />
+          <Card className="p-4 shadow-sm sm:shadow-md border border-neutral-200/90">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm sm:text-base font-bold text-neutral-900 leading-snug">
+                  Rindu ke Tanah Suci?
+                </h2>
+                <p className="text-[11px] text-neutral-500 mt-0.5 truncate">
+                  Wujudkan niat ibadah Anda sekarang
+                </p>
+              </div>
+              <Link
+                href="/paket"
+                className="shrink-0 px-3.5 py-2.5 rounded-xl bg-brand text-white text-xs font-bold shadow-xs hover:brightness-95 active:scale-98 transition-all flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <span>Pilih Paket</span>
+                <svg
+                  className="w-3.5 h-3.5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                  />
+                </svg>
+              </Link>
+            </div>
+          </Card>
         )}
 
         {/* 2. Grid Menu Cepat Seamless (4 Menu: Manasik, Doa-doa, Tips Umroh, Kontak Darurat) */}
@@ -388,7 +437,7 @@ export default function PortalDashboardPage() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 00-1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
+                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
                 />
               </svg>
             </div>
@@ -456,6 +505,54 @@ export default function PortalDashboardPage() {
           </a>
         </div>
 
+        {/* 3. Carousel Paket Umroh Scroll Horizontal (Hanya jika belum ada booking aktif) */}
+        {!selectedBooking && availablePackages.length > 0 && (
+          <div className="space-y-2.5 pt-1">
+            <div className="flex items-center justify-between px-0.5">
+              <h3 className="text-xs sm:text-sm font-bold text-neutral-900">
+                Pilihan Paket Umroh
+              </h3>
+              <Link
+                href="/paket"
+                className="text-xs font-semibold text-brand flex items-center gap-1 hover:underline group"
+              >
+                <span>Lihat Semua</span>
+                <svg
+                  className="w-3.5 h-3.5 text-brand group-hover:translate-x-0.5 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                  />
+                </svg>
+              </Link>
+            </div>
+
+            {/* Horizontal Scroll Track */}
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
+              {availablePackages.map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className="w-[74vw] max-w-[260px] sm:max-w-[275px] shrink-0 snap-center"
+                >
+                  <PackageCard
+                    schedule={pkg}
+                    brandWhatsapp={brandWhatsapp}
+                    brandName={brandName}
+                    brandLogoUrl={brandLogo}
+                    compact={true}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 3. Card Stepper 6 Node: Persiapan Perjalanan */}
         {selectedBooking && (
           <Link href="/portal/perjalanan" className="block">
@@ -470,8 +567,21 @@ export default function PortalDashboardPage() {
                     Lengkapi semua persiapan dengan mudah
                   </p>
                 </div>
-                <span className="text-xs font-semibold text-brand flex items-center gap-0.5 shrink-0">
-                  Lihat Detail &rarr;
+                <span className="text-xs font-semibold text-brand flex items-center gap-1 shrink-0">
+                  <span>Lihat Detail</span>
+                  <svg
+                    className="w-3.5 h-3.5 text-brand"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2.25"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                    />
+                  </svg>
                 </span>
               </div>
 
