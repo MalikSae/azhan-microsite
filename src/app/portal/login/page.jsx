@@ -12,7 +12,7 @@ export default function PortalLoginPage() {
   const { jamaah, isLoading: authLoading, login } = usePortalAuth();
 
   const [portalPin, setPortalPin] = useState('');
-  const [idJamaah, setIdJamaah] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [errorMessage, setErrorMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRefs = useRef([]);
@@ -88,7 +88,7 @@ export default function PortalLoginPage() {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!portalPin.trim() || !idJamaah.trim()) {
+    if (!portalPin.trim() || !identifier.trim()) {
       setErrorMessage('PIN dan ID jamaah wajib diisi');
       return;
     }
@@ -100,7 +100,7 @@ export default function PortalLoginPage() {
 
     setIsSubmitting(true);
     try {
-      await login(brandId, idJamaah.trim().toUpperCase(), portalPin.trim());
+      await login(brandId, identifier.trim(), portalPin.trim());
       router.push('/portal');
     } catch (err) {
       setErrorMessage(err.message || 'ID jamaah atau PIN tidak cocok');
@@ -157,17 +157,17 @@ export default function PortalLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="id_jamaah" className="block text-xs font-semibold text-neutral-700 uppercase tracking-wider mb-1.5">
-                ID Jamaah
+              <label htmlFor="identifier" className="block text-xs font-semibold text-neutral-700 uppercase tracking-wider mb-1.5">
+                ID JAMAAH ATAU NO. WHATSAPP
               </label>
               <input
-                id="id_jamaah"
+                id="identifier"
                 type="text"
-                value={idJamaah}
-                onChange={(e) => setIdJamaah(e.target.value.toUpperCase())}
-                placeholder="mis. AS-2608000001"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="HN-2608000001 atau 08123456789"
                 required
-                className="w-full px-4 py-3 rounded-xl border border-neutral-300 text-neutral-900 placeholder-neutral-400 font-mono uppercase text-base focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-neutral-300 text-neutral-900 placeholder-neutral-400 font-mono text-base focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
               />
             </div>
 
@@ -198,7 +198,7 @@ export default function PortalLoginPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting || portalPin.length !== 6 || !idJamaah.trim()}
+              disabled={isSubmitting || portalPin.length !== 6 || !identifier.trim()}
               className="w-full py-3 px-4 rounded-xl bg-brand text-white font-semibold text-sm hover:brightness-95 active:brightness-90 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
               {isSubmitting ? (
@@ -217,7 +217,7 @@ export default function PortalLoginPage() {
 
           <div className="mt-6 pt-5 border-t border-neutral-100 text-center">
             <p className="text-xs text-neutral-500">
-              ID Jamaah bisa dilihat pada invoice atau ditanyakan ke admin travel Anda.
+              Gunakan ID Jamaah dari invoice, atau nomor WhatsApp yang terdaftar. Belum bisa masuk? Hubungi admin travel Anda.
             </p>
           </div>
         </div>
