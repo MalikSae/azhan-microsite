@@ -17,7 +17,9 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
   const [iconFailed, setIconFailed] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
   const brandIconUrl = `/brand-icon?brand=${encodeURIComponent(brandId)}`;
-  const imageUrl = brandLogoUrl && !logoFailed ? brandLogoUrl : brandIconUrl;
+  const imageUrl = !iconFailed
+    ? brandIconUrl
+    : (brandLogoUrl && !logoFailed ? brandLogoUrl : '');
 
   useEffect(() => {
     if (isStandalone()) return undefined;
@@ -57,11 +59,11 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
   };
 
   return (
-    <aside className="border-b border-neutral-200 bg-brand-soft px-4 py-3 sm:px-6 md:hidden" aria-label="Install aplikasi">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 sm:flex-nowrap sm:gap-4">
-        <div className="flex h-11 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-white px-2 py-1.5 shadow-sm sm:h-12 sm:w-24" aria-hidden="true">
-          {iconFailed ? (
-            <svg viewBox="0 0 24 24" className="h-5 w-5 text-brand" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <aside className="border-b border-neutral-200 bg-brand-soft px-3 py-2.5 md:hidden" aria-label="Install aplikasi">
+      <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5">
+        <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white" aria-hidden="true">
+          {!imageUrl ? (
+            <svg viewBox="0 0 24 24" className="size-5 text-brand" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3v12" />
               <path d="m7 10 5 5 5-5" />
               <path d="M5 21h14" />
@@ -70,33 +72,23 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
             <img
               src={imageUrl}
               alt=""
-              className="h-full w-full object-contain"
+              className="size-full object-contain"
               onError={() => {
-                if (brandLogoUrl && !logoFailed) setLogoFailed(true);
-                else setIconFailed(true);
+                if (!iconFailed) setIconFailed(true);
+                else setLogoFailed(true);
               }}
             />
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold leading-5 text-neutral-900 sm:text-sm">
-            Install {brandName}, lebih praktis
-          </p>
-          <p className="text-[11px] leading-4 text-neutral-600 sm:text-xs sm:leading-5">
-            Cek jadwal, booking, dan info perjalanan lebih cepat—cukup satu ketukan.
-          </p>
-          <div className="mt-1 hidden items-center gap-2 text-[10px] font-semibold text-brand sm:flex">
-            <span>Akses 1 ketukan</span>
-            <span className="text-neutral-300">•</span>
-            <span>Tampilan seperti aplikasi</span>
-          </div>
-        </div>
+        <p className="line-clamp-2 min-w-0 text-pretty text-xs font-semibold leading-4 text-neutral-800">
+          Akses jadwal dan booking lebih praktis.
+        </p>
         <button
           type="button"
           onClick={handleInstall}
-          className="basis-full rounded-lg bg-brand px-3 py-2 text-[11px] font-bold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 sm:basis-auto sm:px-4 sm:text-xs"
+          className="min-h-11 shrink-0 rounded-lg bg-brand px-4 text-xs font-bold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
         >
-          {installPrompt ? 'Install sekarang' : 'Lihat cara install'}
+          Install
         </button>
       </div>
 
