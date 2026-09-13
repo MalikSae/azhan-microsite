@@ -3,13 +3,19 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const body = await request.json();
+    const authHeader = request.headers.get('authorization');
     const baseUrl = process.env.API_BASE_URL_INTERNAL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
     
+    const forwardHeaders = {
+      'Content-Type': 'application/json',
+    };
+    if (authHeader) {
+      forwardHeaders['Authorization'] = authHeader;
+    }
+
     const res = await fetch(`${baseUrl}/api/public/book`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: forwardHeaders,
       body: JSON.stringify(body),
     });
 

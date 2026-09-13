@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { getMe } from '@/lib/portalApi';
 
 // Format Rupiah Helper
 const formatRp = (num) => {
@@ -23,7 +24,7 @@ const formatDate = (dateStr) => {
 };
 
 // Custom Select Component for Clean UI
-function CustomSelect({ value, onChange, placeholder = 'Pilih Jenis Kelamin' }) {
+function CustomSelect({ value, onChange, options: customOptions, placeholder = 'Pilih Jenis Kelamin' }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -37,11 +38,12 @@ function CustomSelect({ value, onChange, placeholder = 'Pilih Jenis Kelamin' }) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const options = [
+  const defaultOptions = [
     { value: 'L', label: 'Laki-laki' },
     { value: 'P', label: 'Perempuan' },
   ];
 
+  const options = customOptions || defaultOptions;
   const selectedOpt = options.find((o) => o.value === value);
 
   return (
@@ -141,6 +143,9 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
   const [bookingResult, setBookingResult] = useState(null);
   const activeAccounts = (initialBankAccounts && initialBankAccounts.length > 0) ? initialBankAccounts : ((travelAccounts && travelAccounts.length > 0) ? travelAccounts : []);
 
+  const [loggedInUser, setLoggedInUser] = useState(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   // Restore Step 4 state from sessionStorage on mount / refresh
   useEffect(() => {
     try {
@@ -169,6 +174,59 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
       console.error('Failed to restore booking state:', e);
     }
   }, [schedule?.id, schedule?.harga_double, schedule?.harga_infant, schedule?.minimal_dp, initialBankAccounts, travelAccounts]);
+
+  // Auto-detect Portal Jamaah login session
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (typeof window === 'undefined') return;
+      const token = localStorage.getItem('portal_access_token');
+      if (!token) return;
+
+      try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return;
+        const payloadStr = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(payloadStr);
+
+        if (payload.exp && payload.exp < Date.now() / 1000) return;
+        if (payload.type !== 'portal') return;
+
+        const me = await getMe();
+        if (me && me.id) {
+          const targetBrandId = schedule?.brand_id || brandId;
+          if (!targetBrandId || me.brand_id === targetBrandId) {
+            setLoggedInUser(me);
+            setPicNama(me.nama_lengkap || '');
+            setPicPhone(me.no_hp || '');
+            setPicGender(me.jenis_kelamin || 'L');
+            if (me.email) setPicEmail(me.email);
+            setPhoneCheckStatus('logged_in');
+            setLastCheckedPhone(me.no_hp || '');
+          }
+        }
+      } catch (err) {
+        console.warn('Gagal membaca sesi portal login:', err);
+      }
+    };
+
+    checkAuth();
+  }, [schedule?.brand_id, brandId]);
+
+  const handleLogoutAuth = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('portal_access_token');
+    }
+    setLoggedInUser(null);
+    setPicNama('');
+    setPicPhone('');
+    setPicGender('');
+    setPicEmail('');
+    setPhoneCheckStatus('idle');
+    setLastCheckedPhone('');
+    setPicPin('');
+    setPicPinConfirm('');
+    setPicPinVerify('');
+  };
 
   const activeColor = brandColor || '#990000';
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
@@ -491,7 +549,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
         showAlert('PIN Portal Jamaah wajib 6 digit angka.');
         return;
       }
-    } else if (phoneCheckStatus === 'tanpa_pin') {
+    } else if (phoneCheckStatus === 'tanpa_pin' || phoneCheckStatus === 'logged_in') {
       // Tidak ada validasi PIN
     } else {
       setStep(2);
@@ -571,9 +629,17 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
         anggota: anggota,
       };
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('portal_access_token') : null;
+      const requestHeaders = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        requestHeaders['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch('/api/public/book', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: requestHeaders,
         body: JSON.stringify(payload),
       });
 
@@ -581,6 +647,10 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
 
       if (!res.ok) {
         throw new Error(data.error || 'Terjadi kesalahan saat memproses pendaftaran booking.');
+      }
+
+      if (data.portal_token && typeof window !== 'undefined') {
+        localStorage.setItem('portal_access_token', data.portal_token);
       }
 
       const resultData = {
@@ -722,6 +792,44 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                 className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all cursor-pointer"
               >
                 Lanjutkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Logout Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-neutral-200 text-center space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+              <svg className="w-6 h-6 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+              </svg>
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-bold text-neutral-900 text-base">Keluar dari Akun?</h3>
+              <p className="text-xs text-neutral-500 leading-relaxed">
+                Anda akan keluar dari akun <strong>{loggedInUser?.nama_lengkap}</strong> dan data formulir Jamaah Utama akan dikosongkan untuk pendaftaran baru.
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLogoutModal(false);
+                  handleLogoutAuth();
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
+              >
+                Ya, Keluar
               </button>
             </div>
           </div>
@@ -961,7 +1069,7 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                     disabled={totalReguler <= 0}
                     className="btn-brand-cta w-full py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none shadow-sm"
                   >
-                    <span>Lanjut: Isi Data Jamaah</span>
+                    <span>Isi Data Jamaah</span>
                     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                     </svg>
@@ -994,6 +1102,36 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   </p>
                 </div>
 
+                {loggedInUser && (
+                  <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold text-xs">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-neutral-900">{loggedInUser.nama_lengkap}</span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white text-neutral-600 border border-neutral-200">
+                            {loggedInUser.id_jamaah || 'Akun Aktif'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-emerald-800 mt-0.5">
+                          Terhubung ke akun Portal Jamaah Anda.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowLogoutModal(true)}
+                      className="text-[11px] font-semibold text-neutral-500 hover:text-neutral-800 underline transition-colors shrink-0 cursor-pointer"
+                    >
+                      Bukan Anda? Keluar
+                    </button>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-1">
                     Nama Lengkap <span className="text-red-500">*</span>
@@ -1011,20 +1149,39 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   <label className="block text-xs font-semibold text-neutral-700 mb-1">
                     No. WhatsApp <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="tel"
-                    value={picPhone}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, '');
-                      setPicPhone(val);
-                      if (val !== lastCheckedPhone) {
-                        setPhoneCheckStatus('idle');
-                      }
-                    }}
-                    onBlur={() => checkPhone(picPhone)}
-                    placeholder="08123456789"
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
-                  />
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={picPhone}
+                      readOnly={Boolean(loggedInUser)}
+                      onChange={(e) => {
+                        if (loggedInUser) return;
+                        const val = e.target.value.replace(/\D/g, '');
+                        setPicPhone(val);
+                        if (val !== lastCheckedPhone) {
+                          setPhoneCheckStatus('idle');
+                        }
+                      }}
+                      onBlur={() => !loggedInUser && checkPhone(picPhone)}
+                      placeholder="08123456789"
+                      className={`w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand font-mono ${
+                        loggedInUser ? 'bg-neutral-100 text-neutral-600 cursor-not-allowed pr-28' : 'bg-white'
+                      }`}
+                    />
+                    {loggedInUser && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Terverifikasi</span>
+                      </span>
+                    )}
+                  </div>
+                  {loggedInUser && (
+                    <p className="text-[11px] text-neutral-400 mt-1">
+                      Nomor akun terkunci agar pemesanan terhubung ke akun Anda.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1223,21 +1380,33 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                   </div>
                 )}
 
+                {/* Cabang 5: Logged In */}
+                {phoneCheckStatus === 'logged_in' && (
+                  <div className="pt-2 border-t border-neutral-100 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100">
+                      <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      <span className="font-medium">Sesi login terverifikasi. Tidak diperlukan input PIN.</span>
+                    </div>
+                  </div>
+                )}
+
                 {totalReguler > 1 && (
                   <div>
                     <label className="block text-xs font-semibold text-neutral-700 mb-1">
                       Pilih Kamar <span className="text-red-500">*</span>
                     </label>
-                    <select
+                    <CustomSelect
                       value={picRoomType}
-                      onChange={(e) => handleRoomTypeChange(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white cursor-pointer"
-                    >
-                      <option value="">-- Pilih Tipe Kamar --</option>
-                      {counts.quad > 0 && <option value="Quad">QUAD (Sekamar ber-4)</option>}
-                      {counts.triple > 0 && <option value="Triple">TRIPLE (Sekamar ber-3)</option>}
-                      {counts.double > 0 && <option value="Double">DOUBLE (Sekamar ber-2)</option>}
-                    </select>
+                      onChange={(val) => handleRoomTypeChange(val)}
+                      placeholder="-- Pilih Tipe Kamar --"
+                      options={[
+                        ...(counts.quad > 0 ? [{ value: 'Quad', label: 'QUAD (Sekamar ber-4)' }] : []),
+                        ...(counts.triple > 0 ? [{ value: 'Triple', label: 'TRIPLE (Sekamar ber-3)' }] : []),
+                        ...(counts.double > 0 ? [{ value: 'Double', label: 'DOUBLE (Sekamar ber-2)' }] : []),
+                      ]}
+                    />
                   </div>
                 )}
               </div>

@@ -175,19 +175,20 @@ textarea {
 }
 
 .btn-wa-cta {
-  background-color: #ffffff !important;
-  color: #25D366 !important;
-  border: 2px solid #25D366 !important;
+  background-color: #25D366 !important;
+  color: #ffffff !important;
+  border: 1px solid #25D366 !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 6px -1px rgba(37, 211, 102, 0.1);
+  box-shadow: 0 2px 8px -1px rgba(37, 211, 102, 0.35);
   cursor: pointer;
 }
 
 .btn-wa-cta:hover {
-  background-color: #25D366 !important;
+  background-color: #20bd5a !important;
+  border-color: #20bd5a !important;
   color: #ffffff !important;
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px -4px rgba(37, 211, 102, 0.4);
+  box-shadow: 0 8px 20px -3px rgba(37, 211, 102, 0.45);
 }
 
 .btn-wa-cta:active {
