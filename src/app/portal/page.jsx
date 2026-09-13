@@ -12,6 +12,7 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
 import PackageCard from '@/components/PackageCard';
+import ItineraryModal from '@/components/ItineraryModal';
 
 function parseLocalDate(dateStr) {
   if (!dateStr) return null;
@@ -34,6 +35,7 @@ export default function PortalDashboardPage() {
   const [payments, setPayments] = useState([]);
   const [dokumenList, setDokumenList] = useState([]);
   const [availablePackages, setAvailablePackages] = useState([]);
+  const [isItineraryOpen, setIsItineraryOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthLoading && !jamaah) {
@@ -185,20 +187,18 @@ export default function PortalDashboardPage() {
     }
   }
 
-  // 2. Perhitungan Progress Persiapan (8 Tahap)
-  const progressFields = selectedBooking
+  // 2. Perhitungan Progress Kesiapan Keberangkatan (6 Tahap oleh Travel)
+  const travelProgressFields = selectedBooking
     ? [
-        selectedBooking.progress_paspor,
-        selectedBooking.progress_visa,
         selectedBooking.progress_tiket,
         selectedBooking.progress_hotel,
+        selectedBooking.progress_visa,
         selectedBooking.progress_land_arrangement,
-        selectedBooking.progress_manasik,
         selectedBooking.progress_siskopatuh,
-        selectedBooking.progress_vaksin_meningitis,
+        selectedBooking.progress_manasik,
       ]
     : [];
-  const completedProgressCount = progressFields.filter(Boolean).length;
+  const completedTravelProgressCount = travelProgressFields.filter(Boolean).length;
 
   // 3. Perhitungan Kelengkapan Dokumen (7 Jenis)
   const validDocTypes = [
@@ -223,28 +223,29 @@ export default function PortalDashboardPage() {
     .reduce((acc, curr) => acc + (Number(curr.jumlah) || 0), 0);
   const totalHarga = Number(selectedBooking?.total_harga) || 0;
   const sisaTagihan = Math.max(0, totalHarga - totalDibayar);
+  const percentPaid = totalHarga > 0 ? Math.min(100, Math.round((totalDibayar / totalHarga) * 100)) : 0;
 
-  // 5. Data Stepper 6 Node
-  const remainingLainnya = selectedBooking
-    ? [
-        selectedBooking.progress_land_arrangement,
-        selectedBooking.progress_siskopatuh,
-        selectedBooking.progress_vaksin_meningitis,
-      ].filter((x) => !x).length
-    : 3;
+  let jatuhTempoStr = null;
+  if (selectedBooking?.berangkat_tanggal) {
+    const depDate = parseLocalDate(selectedBooking.berangkat_tanggal);
+    if (depDate) {
+      const dueDate = new Date(depDate);
+      dueDate.setDate(dueDate.getDate() - 30);
+      const day = dueDate.getDate();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      jatuhTempoStr = `${day} ${months[dueDate.getMonth()]} ${dueDate.getFullYear()}`;
+    }
+  }
 
+  // 5. Data Stepper 6 Node: Murni Pekerjaan Travel Umroh
   const stepperNodes = selectedBooking
     ? [
-        { label: 'Paspor', done: Boolean(selectedBooking.progress_paspor) },
-        { label: 'Manasik', done: Boolean(selectedBooking.progress_manasik) },
-        { label: 'Visa', done: Boolean(selectedBooking.progress_visa) },
         { label: 'Tiket', done: Boolean(selectedBooking.progress_tiket) },
         { label: 'Hotel', done: Boolean(selectedBooking.progress_hotel) },
-        {
-          label: 'Lainnya',
-          isSpecial: true,
-          statusText: remainingLainnya === 0 ? 'Selesai' : `${remainingLainnya} Tersisa`,
-        },
+        { label: 'Visa', done: Boolean(selectedBooking.progress_visa) },
+        { label: 'LA', done: Boolean(selectedBooking.progress_land_arrangement) },
+        { label: 'Siskopatuh', done: Boolean(selectedBooking.progress_siskopatuh) },
+        { label: 'Manasik', done: Boolean(selectedBooking.progress_manasik) },
       ]
     : [];
 
@@ -319,7 +320,7 @@ export default function PortalDashboardPage() {
 
       {/* Konten Halaman (Overlap Menimpa Header Bagian Bawah) */}
       <div className="relative -mt-9 z-10 px-4 space-y-4 pb-6">
-        {/* 1. Card Perjalanan (Dua Kolom dengan Divider & Overlap Header) */}
+        {/* 1. Card Perjalanan & Tagihan (Unified Card) */}
         {selectedBooking ? (
           <Card className="p-4 shadow-sm sm:shadow-md border border-neutral-200/90">
             <div className="grid grid-cols-12 gap-2 divide-x divide-neutral-200/80 items-center">
@@ -331,11 +332,29 @@ export default function PortalDashboardPage() {
                 <h2 className="text-base sm:text-lg font-bold text-neutral-900 leading-snug">
                   {formatTanggalIndo(selectedBooking.berangkat_tanggal)}
                 </h2>
-                {selectedBooking.id_booking && (
-                  <p className="text-[11px] font-mono text-neutral-400 mt-1">
-                    Kode Booking: {selectedBooking.id_booking}
-                  </p>
-                )}
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {selectedBooking.id_booking && (
+                    <span className="text-[11px] font-mono text-neutral-400">
+                      {selectedBooking.id_booking}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedBooking.itinerary_id) {
+                        setIsItineraryOpen(true);
+                      } else {
+                        router.push(`/portal/perjalanan?tab=keberangkatan&booking=${selectedBooking.id}`);
+                      }
+                    }}
+                    className="text-[11px] font-semibold text-brand hover:underline inline-flex items-center gap-0.5"
+                  >
+                    <span>{selectedBooking.itinerary_id ? 'Lihat Itinerary' : 'Itinerary'}</span>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Kolom Kanan: Countdown / Status Keberangkatan */}
@@ -359,6 +378,70 @@ export default function PortalDashboardPage() {
                 )}
               </div>
             </div>
+
+            {/* Status Pembayaran & Tagihan (Progress Bar) */}
+            <Link
+              href="/portal/pembayaran"
+              className="block mt-3.5 pt-3.5 border-t border-neutral-100 group"
+            >
+              {/* Di kiri angka terbayar, di kanan angka total */}
+              <div className="flex items-center justify-between mb-1.5 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-neutral-900">
+                    {formatRupiah(totalDibayar)}
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600">
+                    {percentPaid}%
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-neutral-400 font-normal">Total </span>
+                  <span className="font-bold text-neutral-700">
+                    {formatRupiah(totalHarga)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="h-2 w-full bg-neutral-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    percentPaid >= 100 ? 'bg-emerald-500' : 'bg-brand'
+                  }`}
+                  style={{ width: `${percentPaid}%` }}
+                />
+              </div>
+
+              {/* Jatuh tempo jadikan satu baris text kecil dibawah bar */}
+              <div className="flex items-center justify-between text-[11px] text-neutral-500 mt-1.5 leading-normal">
+                {sisaTagihan > 0 ? (
+                  <>
+                    <span className="truncate">
+                      Sisa{' '}
+                      <strong className="text-amber-700 font-semibold">
+                        {formatRupiah(sisaTagihan)}
+                      </strong>
+                      {jatuhTempoStr && ` • Batas Pelunasan ${jatuhTempoStr}`}
+                    </span>
+                    <span className="shrink-0 text-neutral-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all text-xs font-semibold ml-2">
+                      ›
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-emerald-600 font-semibold inline-flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Pembayaran Lunas
+                    </span>
+                    <span className="shrink-0 text-neutral-400 group-hover:text-brand group-hover:translate-x-0.5 transition-all text-xs font-semibold ml-2">
+                      ›
+                    </span>
+                  </>
+                )}
+              </div>
+            </Link>
           </Card>
         ) : (
           <Card className="p-4 shadow-sm sm:shadow-md border border-neutral-200/90">
@@ -554,17 +637,18 @@ export default function PortalDashboardPage() {
         )}
 
         {/* 3. Card Stepper 6 Node: Persiapan Perjalanan */}
+        {/* 3. Card Stepper 6 Node: Kesiapan Keberangkatan (Travel) */}
         {selectedBooking && (
-          <Link href="/portal/perjalanan" className="block">
+          <Link href={`/portal/perjalanan?tab=keberangkatan&booking=${selectedBooking.id}`} className="block">
             <Card className="p-4 hover:border-neutral-300 transition-colors">
               {/* Header Stepper */}
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-xs sm:text-sm font-bold text-neutral-900">
-                    Persiapan Perjalanan Anda
+                    Kesiapan Keberangkatan
                   </h3>
                   <p className="text-[11px] text-neutral-500">
-                    Lengkapi semua persiapan dengan mudah
+                    Pantau kesiapan ibadah Anda
                   </p>
                 </div>
                 <span className="text-xs font-semibold text-brand flex items-center gap-1 shrink-0">
@@ -601,16 +685,12 @@ export default function PortalDashboardPage() {
                         {/* Circle Node */}
                         <div
                           className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                            node.isSpecial
-                              ? 'border border-dashed border-neutral-300 bg-neutral-50 text-neutral-400 font-bold text-[9px] ring-4 ring-white'
-                              : isDone
+                            isDone
                               ? 'bg-brand text-white shadow-2xs ring-4 ring-white'
                               : 'bg-white border border-neutral-300 text-neutral-400 ring-4 ring-white'
                           }`}
                         >
-                          {node.isSpecial ? (
-                            <span>...</span>
-                          ) : isDone ? (
+                          {isDone ? (
                             <svg
                               className="w-3.5 h-3.5"
                               fill="none"
@@ -636,11 +716,7 @@ export default function PortalDashboardPage() {
 
                         {/* Status Label */}
                         <span className="text-[9px] mt-0.5 leading-tight">
-                          {node.isSpecial ? (
-                            <span className="text-neutral-500 font-medium">
-                              {node.statusText}
-                            </span>
-                          ) : isDone ? (
+                          {isDone ? (
                             <span className="text-emerald-600 font-semibold">
                               Selesai
                             </span>
@@ -659,7 +735,7 @@ export default function PortalDashboardPage() {
               {/* Baris Ringkasan di Bawah Stepper */}
               <div className="mt-3.5 pt-3 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-600">
                 <span className="font-medium">
-                  {completedProgressCount} dari 8 tahap selesai
+                  {completedTravelProgressCount} dari 6 tahap selesai
                 </span>
                 {selectedBooking.siap_berangkat && (
                   <Badge variant="success">Siap Berangkat</Badge>
@@ -669,8 +745,8 @@ export default function PortalDashboardPage() {
           </Link>
         )}
 
-        {/* 4. Card Dokumen */}
-        <Link href="/portal/perjalanan" className="block">
+        {/* 4. Card Dokumen Persyaratan (Kewajiban Jamaah) */}
+        <Link href={`/portal/perjalanan?tab=dokumen${selectedBooking ? `&booking=${selectedBooking.id}` : ''}`} className="block">
           <Card className="p-4 hover:border-neutral-300 transition-colors">
             <div className="flex items-center gap-3.5">
               <div
@@ -697,14 +773,14 @@ export default function PortalDashboardPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs sm:text-sm font-bold text-neutral-900">
-                    Kelengkapan Dokumen
+                    Dokumen Persyaratan
                   </h3>
                   <span className="text-[11px] font-semibold text-brand">
                     {approvedDocsCount}/7
                   </span>
                 </div>
                 <p className="text-xs text-neutral-500 mt-0.5">
-                  {approvedDocsCount} dari 7 dokumen telah disetujui
+                  Lengkapi berkas identitas Anda ({approvedDocsCount} disetujui)
                 </p>
                 <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden mt-2">
                   <div
@@ -717,50 +793,7 @@ export default function PortalDashboardPage() {
           </Card>
         </Link>
 
-        {/* 5. Card Pembayaran */}
-        {selectedBooking && (
-          <Link href="/portal/perjalanan" className="block">
-            <Card className="p-4 hover:border-neutral-300 transition-colors">
-              <div className="flex items-center gap-3.5">
-                <div
-                  className="w-11 h-11 rounded-2xl border text-brand flex items-center justify-center shrink-0 shadow-2xs"
-                  style={{
-                    backgroundColor: 'color-mix(in srgb, var(--brand-primary, #990000) 8%, white)',
-                    borderColor: 'color-mix(in srgb, var(--brand-primary, #990000) 25%, #e5e5e5)',
-                  }}
-                >
-                  <svg
-                    className="w-5 h-5 text-brand"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
-                    />
-                  </svg>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-xs sm:text-sm font-bold text-neutral-900">
-                    Status Pembayaran
-                  </h3>
-                  {sisaTagihan > 0 ? (
-                    <p className="text-xs text-amber-700 font-medium mt-0.5">
-                      Sisa tagihan {formatRupiah(sisaTagihan)}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-emerald-600 font-medium mt-0.5">
-                      Pembayaran Lunas
-                    </p>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </Link>
-        )}
+
 
         {/* 6. Banner Syiar (Solid Brand Color) */}
         <Link href="/portal/syiar" className="block">
@@ -791,6 +824,13 @@ export default function PortalDashboardPage() {
           </div>
         </Link>
       </div>
+
+      {/* Modal Itinerary */}
+      <ItineraryModal
+        itineraryId={selectedBooking?.itinerary_id}
+        isOpen={isItineraryOpen}
+        onClose={() => setIsItineraryOpen(false)}
+      />
     </>
   );
 }
