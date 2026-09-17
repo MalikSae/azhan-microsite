@@ -16,6 +16,11 @@ module.exports = {
         sans: ['var(--font-dm-sans)', 'sans-serif'],
       },
       colors: {
+        brand: {
+          DEFAULT: 'var(--brand-primary, #B87A3A)',
+          light: 'color-mix(in srgb, var(--brand-primary, #B87A3A) 8%, transparent)',
+          soft: 'color-mix(in srgb, var(--brand-primary, #B87A3A) 5%, white)',
+        },
         neutral: colors.slate,
         success: colors.green,
         warning: colors.amber,

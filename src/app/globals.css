@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
+@theme {
+  --color-brand: var(--brand-primary, #B87A3A);
+  --color-brand-light: color-mix(in srgb, var(--brand-primary, #B87A3A) 8%, transparent);
+  --color-brand-soft: color-mix(in srgb, var(--brand-primary, #B87A3A) 5%, white);
+}
+
 :root {
   color-scheme: light;
 }
@@ -69,7 +75,15 @@ textarea {
   border-color: var(--brand-primary, #B87A3A) !important;
 }
 
+.focus-within\:border-brand:focus-within {
+  border-color: var(--brand-primary, #B87A3A) !important;
+}
+
 .focus\:ring-brand:focus {
+  --tw-ring-color: var(--brand-primary, #B87A3A);
+}
+
+.focus-within\:ring-brand:focus-within {
   --tw-ring-color: var(--brand-primary, #B87A3A);
 }
 
@@ -144,6 +158,41 @@ textarea {
   animation: icon-bounce-glow 1.2s ease-in-out infinite;
 }
 
+/* Animasi Perhatian Menarik Tombol WhatsApp (Shake + Subtle Glow Ring) */
+@keyframes wa-attention {
+  0%, 65%, 100% {
+    transform: scale(1) rotate(0deg);
+    box-shadow: 0 2px 6px rgba(37, 211, 102, 0.25);
+  }
+  70% {
+    transform: scale(1.1) rotate(-10deg);
+    box-shadow: 0 0 0 4px rgba(37, 211, 102, 0.4);
+  }
+  75% {
+    transform: scale(1.1) rotate(10deg);
+    box-shadow: 0 0 0 8px rgba(37, 211, 102, 0.25);
+  }
+  80% {
+    transform: scale(1.1) rotate(-8deg);
+    box-shadow: 0 0 0 12px rgba(37, 211, 102, 0.1);
+  }
+  85% {
+    transform: scale(1.06) rotate(6deg);
+    box-shadow: 0 0 0 6px rgba(37, 211, 102, 0.05);
+  }
+  90% {
+    transform: scale(1.02) rotate(-2deg);
+    box-shadow: 0 2px 6px rgba(37, 211, 102, 0.25);
+  }
+  95% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-wa-attention {
+  animation: wa-attention 3s ease-in-out infinite;
+}
+
 .portal-page {
   width: 100%;
   max-width: 1280px;
@@ -208,6 +257,22 @@ textarea {
   border-color: var(--brand-primary, #B87A3A) !important;
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Custom utility classes to hide scrollbars cleanly across all browsers */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar,
+.scrollbar-none,
+.scrollbar-hide {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 /* ─── PRINT TO PDF STYLES (A4 DIGITAL INVOICE) ─── */

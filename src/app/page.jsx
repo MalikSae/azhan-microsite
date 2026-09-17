@@ -1,12 +1,8 @@
 import { headers } from 'next/headers';
 import Link from 'next/link';
-import { getPublicSchedules } from '@/lib/api';
-import HeroSearchFilter from '@/components/HeroSearchFilter';
-import TrustBar from '@/components/TrustBar';
-import PackageListClient from '@/components/PackageListClient';
-import WhyChooseUs from '@/components/WhyChooseUs';
-import Testimonials from '@/components/Testimonials';
-import FaqSection from '@/components/FaqSection';
+import { getPublicSchedules, getPublicBankAccounts } from '@/lib/api';
+import HomeAppClient from '@/components/home/HomeAppClient';
+import MobileBottomNav from '@/components/home/MobileBottomNav';
 import FooterSection from '@/components/FooterSection';
 import PwaInstallBanner from '@/components/PwaInstallBanner';
 
@@ -60,6 +56,7 @@ export default async function HomePage() {
   const brandId = headersList.get('x-brand-id') || '1';
   const brandName = headersList.get('x-brand-name') || 'Hana Tours Travel';
   const brandLogo = headersList.get('x-brand-logo');
+  const brandIcon = headersList.get('x-brand-icon');
   const brandWhatsapp = headersList.get('x-brand-whatsapp') || '6281234567890';
   const brandAddress = headersList.get('x-brand-address') || '';
   const brandCity = headersList.get('x-brand-city') || '';
@@ -89,6 +86,13 @@ export default async function HomePage() {
     fetchError = err.message || 'Gagal memuat data paket umroh dari server.';
   }
 
+  let bankAccounts = [];
+  try {
+    bankAccounts = await getPublicBankAccounts(brandId);
+  } catch (err) {
+    console.error('Gagal mengambil rekening bank:', err);
+  }
+
   // Sort berdasarkan keberangkatan terdekat (ASC) dan batasi 6 paket untuk homepage
   const sortedSchedules = [...schedules].sort((a, b) => {
     const dateA = new Date(a.berangkat_tanggal || '9999-12-31').getTime();
@@ -100,166 +104,84 @@ export default async function HomePage() {
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const fullLogoUrl = brandLogo && brandLogo.startsWith('/') ? `${apiBaseUrl}${brandLogo}` : brandLogo;
+  const fullIconUrl = brandIcon && brandIcon.startsWith('/') ? `${apiBaseUrl}${brandIcon}` : brandIcon;
 
   return (
-    <main className="min-h-screen bg-neutral-50/50">
+    <main className="min-h-screen bg-[#EEF2F6] pb-20 md:pb-6">
       <PwaInstallBanner brandName={brandName} brandId={brandId} brandLogoUrl={fullLogoUrl} />
-      {/* Brand Navigation / Top Header */}
-      <header className="bg-white border-b border-neutral-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            {fullLogoUrl ? (
-              <img 
-                src={fullLogoUrl} 
-                alt={`${brandName} Logo`}
-                className="h-8 sm:h-9 max-w-[180px] sm:max-w-[220px] w-auto object-contain"
+      
+      {/* Container Mobile App Viewport (375px - max-w-md centered, Pure White Seamless) */}
+      <div className="max-w-md mx-auto min-h-screen bg-white border-x border-neutral-100 flex flex-col relative shadow-2xl shadow-neutral-300/30">
+        
+        {/* App Header Row (Sticky, Seamless) */}
+        <header className="w-full h-[54px] shrink-0 flex flex-row justify-between items-center px-4 bg-white/95 backdrop-blur-md sticky top-0 z-30 border-b border-neutral-100">
+          {/* Brand Info & Legal Status */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            {fullIconUrl ? (
+              <img
+                src={fullIconUrl}
+                alt={`${brandName} Icon`}
+                className="w-[32px] h-[32px] rounded-[10px] object-contain bg-white border border-neutral-200/80 shadow-2xs shrink-0"
               />
             ) : (
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white font-bold text-base shadow-xs">
-                  {brandName.charAt(0)}
-                </div>
-                <div className="min-w-0">
-                  <span className="truncate text-sm sm:text-base font-bold text-neutral-900 leading-tight font-heading block">
-                    {brandName}
-                  </span>
-                </div>
+              <div className="w-[32px] h-[32px] flex justify-center items-center bg-brand text-white rounded-[10px] shadow-2xs font-extrabold text-[15px] shrink-0">
+                {brandName ? brandName.charAt(0) : 'A'}
               </div>
             )}
-          </div>
-
-          <div className="shrink-0 flex items-center gap-3">
-            <Link
-              href="/portal"
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl text-neutral-800 bg-neutral-100 hover:bg-neutral-200 transition-colors shadow-2xs"
-            >
-              <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>Portal Jamaah</span>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* ━━━ SECTION 1: HERO DENGAN EDITORIAL TEXT HIGHLIGHT ━━━ */}
-      <section className="relative text-white pt-14 sm:pt-18 md:pt-24 pb-24 sm:pb-28 md:pb-36 px-4 sm:px-6 lg:px-8 bg-neutral-950">
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <img
-            src="/images/hero-makkah.jpg"
-            alt="Latar Belakang Masjidil Haram Makkah"
-            className="w-full h-full object-cover object-center brightness-75 contrast-105"
-          />
-          <div className="absolute inset-0 bg-neutral-950/75" />
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto w-full">
-          <div className="text-left md:text-center md:max-w-3xl md:mx-auto space-y-3.5">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] sm:text-xs font-semibold text-white shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-success-400"></span>
-              <span>Berizin Resmi PPIU Kemenag RI</span>
-            </div>
-
-            {/* H1 dengan Editorial Text Highlight Persis Referensi */}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold font-heading text-white leading-tight sm:leading-snug tracking-tight drop-shadow-md">
-              Wujudkan Ibadah Umroh Nyaman Bersama{' '}
-              <span className="bg-brand text-white px-2.5 sm:px-3 py-0.5 sm:py-1 inline-block whitespace-nowrap leading-none align-baseline font-black shadow-xs">
+            <div className="flex flex-col justify-center min-w-0">
+              <div className="text-[15px] text-neutral-900 font-extrabold leading-none truncate">
                 {brandName}
-              </span>
-            </h1>
-
-            <p className="text-xs sm:text-sm md:text-base text-neutral-200 leading-relaxed md:max-w-2xl md:mx-auto font-medium drop-shadow-xs">
-              Pilihan jadwal keberangkatan pasti, maskapai direct/transit terpercaya, dan akomodasi hotel pilihan dekat masjid untuk kenyamanan ibadah Anda.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ━━━ FLOATING CARD FILTER: OVERLAPPING HERO & CONTENT ━━━ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative -mt-16 sm:-mt-18 md:-mt-20 z-20">
-        <HeroSearchFilter schedules={schedules} brandName={brandName} />
-      </div>
-
-      {/* ━━━ SECTION 2: TRUST BAR ━━━ */}
-      <TrustBar />
-
-      {/* ─── GARIS PEMISAH SECTION KEUNGGULAN & KATALOG ─── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="border-t border-neutral-200" />
-      </div>
-
-      {/* ━━━ SECTION 3: KATALOG PAKET UMROH ━━━ */}
-      <section className="py-14 md:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-8 md:space-y-10">
-          <div className="text-left md:text-center md:max-w-2xl md:mx-auto space-y-1.5">
-            <span className="text-[11px] md:text-xs font-bold uppercase tracking-wider text-brand block">
-              Katalog Terpilih
-            </span>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold font-heading text-neutral-900 leading-snug">
-              Pilihan Paket Umroh {brandName}
-            </h2>
-            <p className="text-xs sm:text-sm text-neutral-500 leading-relaxed max-w-lg mx-auto">
-              Jadwal keberangkatan terdekat dengan fasilitas prima untuk kenyamanan ibadah Anda.
-            </p>
-          </div>
-
-          {fetchError && (
-            <div className="p-4 rounded-xl bg-danger-50 border border-danger-200 text-danger-700 text-sm flex items-center gap-3">
-              <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{fetchError}</span>
+              </div>
+              <div className="flex items-center gap-1 text-[10px] text-emerald-700 font-bold leading-none mt-1 truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>{brandLegal}</span>
+              </div>
             </div>
-          )}
+          </div>
 
-          <PackageListClient
-            initialSchedules={featuredSchedules}
-            showControls={false}
-            brandWhatsapp={brandWhatsapp}
+          {/* Header Action: Portal Jamaah */}
+          <Link
+            href="/portal"
+            className="w-[34px] h-[34px] flex justify-center items-center bg-neutral-100 hover:bg-brand-light hover:text-brand text-neutral-700 rounded-full transition-colors shadow-2xs shrink-0"
+            title="Portal Jamaah"
+          >
+            <svg className="w-[16px] h-[16px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </Link>
+        </header>
+
+        {/* Dynamic App Content Client */}
+        <div className="w-full flex flex-col bg-white">
+          <HomeAppClient
+            initialSchedules={sortedSchedules}
             brandName={brandName}
+            brandWhatsapp={brandWhatsapp}
             brandLogoUrl={fullLogoUrl}
+            brandLegal={brandLegal}
           />
-
-          {/* Tombol Lihat Semua Paket */}
-          {totalSchedulesCount > 6 && (
-            <div className="pt-4 text-center">
-              <Link
-                href="/paket"
-                className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-neutral-800 bg-white border border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400 px-6 py-3 rounded-2xl transition-all shadow-2xs hover:shadow-xs"
-              >
-                <span>Lihat Semua Paket ({totalSchedulesCount})</span>
-                <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </Link>
-            </div>
-          )}
         </div>
-      </section>
 
-      {/* ━━━ SECTION 4: KENAPA PILIH KAMI ━━━ */}
-      <WhyChooseUs brandName={brandName} />
+        {/* Compact App Footer */}
+        <FooterSection
+          compact={true}
+          brandName={brandName}
+          brandWhatsapp={brandWhatsapp}
+          fullLogoUrl={fullLogoUrl}
+          address={brandAddress}
+          city={brandCity}
+          province={brandProvince}
+          email={brandEmail}
+          phone={brandPhone}
+          gmapsUrl={brandGmaps}
+          legalInfo={brandLegal}
+          socials={brandSocials}
+          bankAccounts={bankAccounts}
+        />
 
-      {/* ━━━ SECTION 5: TESTIMONI JAMAAH ━━━ */}
-      <Testimonials brandName={brandName} />
-
-      {/* ━━━ SECTION 6: FAQ (PERTANYAAN UMUM) ━━━ */}
-      <FaqSection brandName={brandName} />
-
-      {/* ━━━ SECTION 7: FOOTER (NAP & KONTAK) ━━━ */}
-      <FooterSection
-        brandName={brandName}
-        brandWhatsapp={brandWhatsapp}
-        fullLogoUrl={fullLogoUrl}
-        address={brandAddress}
-        city={brandCity}
-        province={brandProvince}
-        email={brandEmail}
-        phone={brandPhone}
-        gmapsUrl={brandGmaps}
-        legalInfo={brandLegal}
-        socials={brandSocials}
-      />
+        {/* Fixed Mobile Bottom Navigation Bar */}
+        <MobileBottomNav brandWhatsapp={brandWhatsapp} />
+      </div>
     </main>
   );
 }
