@@ -46,6 +46,7 @@ export async function middleware(request) {
     requestHeaders.set('x-brand-phone', brand.phone || brand.telp_kantor || '');
     requestHeaders.set('x-brand-gmaps', brand.gmaps_url || '');
     requestHeaders.set('x-brand-legal', brand.legal_info || brand.keterangan_legalitas || '');
+    requestHeaders.set('x-brand-ppiu', brand.ppiu_number || '');
     requestHeaders.set('x-brand-meta-title', brand.meta_title || '');
     requestHeaders.set('x-brand-meta-desc', brand.meta_description || '');
     requestHeaders.set('x-brand-og-image', brand.og_image_url || '');
