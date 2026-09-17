@@ -1,8 +1,10 @@
 import { headers } from 'next/headers';
 import Link from 'next/link';
-import { getPublicSchedules } from '@/lib/api';
-import FilterResultsClient from '@/components/FilterResultsClient';
+import { getPublicSchedules, getPublicBankAccounts } from '@/lib/api';
+import PaketAppClient from '@/components/paket/PaketAppClient';
 import FooterSection from '@/components/FooterSection';
+import MobileBottomNav from '@/components/home/MobileBottomNav';
+import PwaInstallBanner from '@/components/PwaInstallBanner';
 
 export async function generateMetadata() {
   const headerList = await headers();
@@ -44,12 +46,13 @@ export async function generateMetadata() {
   };
 }
 
-export default async function PaketFilterPage({ searchParams }) {
+export default async function PaketPage({ searchParams }) {
   const headerList = await headers();
   const brandId = headerList.get('x-brand-id');
   const brandName = headerList.get('x-brand-name') || 'Travel Umroh';
   const brandWhatsapp = headerList.get('x-brand-whatsapp') || '';
   const brandLogo = headerList.get('x-brand-logo') || '';
+  const brandIcon = headerList.get('x-brand-icon') || '';
   const brandAddress = headerList.get('x-brand-address') || '';
   const brandCity = headerList.get('x-brand-city') || '';
   const brandProvince = headerList.get('x-brand-province') || '';
@@ -64,20 +67,14 @@ export default async function PaketFilterPage({ searchParams }) {
     try {
       brandSocials = JSON.parse(brandSocialsRaw);
     } catch {
-      // ignore JSON parse error
+      // ignore
     }
   }
 
   const params = await searchParams;
-  const filterParams = {
-    bulan: params?.bulan || '',
-    harga: params?.harga || '',
-    maskapai: params?.maskapai || '',
-    promo: params?.promo || '',
-    flash_sale: params?.flash_sale || '',
-    hampir_penuh: params?.hampir_penuh || '',
-    banyak_dicari: params?.banyak_dicari || '',
-  };
+  const initialCategory = params?.kategori || 'all';
+  const initialChip = params?.filter || (params?.promo === '1' ? 'promo' : (params?.flash_sale === '1' ? 'flash_sale' : (params?.hampir_penuh === '1' ? 'hampir_penuh' : (params?.banyak_dicari === '1' ? 'banyak_dicari' : 'all'))));
+  const initialQuery = params?.q || '';
 
   if (!brandId) {
     return (
@@ -90,106 +87,101 @@ export default async function PaketFilterPage({ searchParams }) {
   }
 
   let schedules = [];
-  let fetchError = null;
-
   try {
     schedules = await getPublicSchedules(brandId);
   } catch (err) {
     console.error('Gagal mengambil paket umroh:', err);
-    fetchError = err.message || 'Gagal memuat data paket umroh dari server.';
+  }
+
+  let bankAccounts = [];
+  try {
+    bankAccounts = await getPublicBankAccounts(brandId);
+  } catch (err) {
+    console.error('Gagal mengambil rekening bank:', err);
   }
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const fullLogoUrl = brandLogo && brandLogo.startsWith('/') ? `${apiBaseUrl}${brandLogo}` : brandLogo;
+  const fullIconUrl = brandIcon && brandIcon.startsWith('/') ? `${apiBaseUrl}${brandIcon}` : brandIcon;
 
   return (
-    <main className="min-h-screen flex flex-col justify-between">
-      <div>
-        {/* Header / Brand Bar */}
-        <header className="bg-white border-b border-neutral-200 sticky top-0 z-30 shadow-xs">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
-            <Link href="/" className="flex min-w-0 items-center gap-3">
-              {fullLogoUrl ? (
-                <img 
-                  src={fullLogoUrl} 
-                  alt={`${brandName} Logo`}
-                  className="h-8 sm:h-9 max-w-[180px] sm:max-w-[220px] w-auto object-contain"
-                />
-              ) : (
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white font-bold text-base shadow-xs">
-                    {brandName.charAt(0)}
-                  </div>
-                  <span className="truncate text-sm sm:text-base font-bold text-neutral-900 font-heading">
-                    {brandName}
-                  </span>
-                </div>
-              )}
-            </Link>
+    <main className="min-h-screen bg-[#EEF2F6] pb-20 md:pb-6">
+      <PwaInstallBanner brandName={brandName} brandId={brandId} brandLogoUrl={fullLogoUrl} />
 
-            <Link
-              href="/portal"
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl text-neutral-800 bg-neutral-100 hover:bg-neutral-200 transition-colors shadow-2xs"
-            >
-              <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>Portal Jamaah</span>
-            </Link>
+      {/* ━━━ Container Mobile App Viewport (375px - max-w-md centered, Pure White Seamless) ━━━ */}
+      <div className="max-w-md mx-auto min-h-screen bg-white border-x border-neutral-100 flex flex-col relative shadow-2xl shadow-neutral-300/30">
+
+        {/* App Header Row (Sticky, Seamless - sama persis dengan Home) */}
+        <header className="w-full h-[54px] shrink-0 flex flex-row justify-between items-center px-4 bg-white/95 backdrop-blur-md sticky top-0 z-30 border-b border-neutral-100">
+          {/* Brand Info & Legal Status */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            {fullIconUrl ? (
+              <img
+                src={fullIconUrl}
+                alt={`${brandName} Icon`}
+                className="w-[32px] h-[32px] rounded-[10px] object-contain bg-white border border-neutral-200/80 shadow-2xs shrink-0"
+              />
+            ) : (
+              <div className="w-[32px] h-[32px] flex justify-center items-center bg-brand text-white rounded-[10px] shadow-2xs font-extrabold text-[15px] shrink-0">
+                {brandName ? brandName.charAt(0) : 'A'}
+              </div>
+            )}
+            <div className="flex flex-col justify-center min-w-0">
+              <div className="text-[15px] text-neutral-900 font-extrabold leading-none truncate">
+                {brandName}
+              </div>
+              <div className="flex items-center gap-1 text-[10px] text-emerald-700 font-bold leading-none mt-1 truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>{brandLegal}</span>
+              </div>
+            </div>
           </div>
+
+          {/* Header Action: Portal Jamaah */}
+          <Link
+            href="/portal"
+            className="w-[34px] h-[34px] flex justify-center items-center bg-neutral-100 hover:bg-brand-light hover:text-brand text-neutral-700 rounded-full transition-colors shadow-2xs shrink-0"
+            title="Portal Jamaah"
+          >
+            <svg className="w-[16px] h-[16px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </Link>
         </header>
 
-        {/* Full-width SEO Banner & Title */}
-        <div className="w-full bg-neutral-900 relative">
-          <div className="absolute inset-0 opacity-30 bg-[url('/hero-makkah.jpg')] bg-cover bg-center mix-blend-overlay"></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-neutral-900/80 via-neutral-900/50 to-neutral-900/90"></div>
-          <div className="relative z-10 px-4 sm:px-6 lg:px-8 pt-12 pb-28 md:pt-16 md:pb-32 flex flex-col items-center text-center max-w-7xl mx-auto">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold font-heading text-white mb-4 drop-shadow-md">
-              Paket Umroh Terlengkap dari {brandName}
-            </h1>
-            <p className="text-neutral-200 text-sm md:text-base max-w-2xl font-medium leading-relaxed drop-shadow-sm">
-              Temukan pilihan paket ibadah umroh terbaik dengan jadwal keberangkatan pasti, harga transparan, maskapai penerbangan terpercaya, dan akomodasi terdekat di Makkah serta Madinah.
-            </p>
-          </div>
-        </div>
-
-        {/* Content Area (Overlapping Banner) */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 -mt-20 md:-mt-24 relative z-20">
-          {fetchError && (
-            <div className="mb-6 p-4 rounded-xl bg-danger-50 border border-danger-200 text-danger-700 text-sm flex items-center gap-3">
-              <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{fetchError}</span>
-            </div>
-          )}
-
-          <FilterResultsClient
+        {/* App Content Container */}
+        <div className="box-border w-full h-fit flex flex-col gap-[16px] p-[16px_16px_24px_16px]">
+          {/* Dynamic App Content Client */}
+          <PaketAppClient
             initialSchedules={schedules}
-            filterParams={filterParams}
             brandWhatsapp={brandWhatsapp}
             brandName={brandName}
-            brandLogoUrl={fullLogoUrl}
+            initialCategory={initialCategory}
+            initialChip={initialChip}
+            initialQuery={initialQuery}
           />
         </div>
-      </div>
 
-      {/* Footer Section */}
-      <FooterSection
-        brandName={brandName}
-        brandWhatsapp={brandWhatsapp}
-        fullLogoUrl={fullLogoUrl}
-        address={brandAddress}
-        city={brandCity}
-        province={brandProvince}
-        email={brandEmail}
-        phone={brandPhone}
-        gmapsUrl={brandGmaps}
-        legalInfo={brandLegal}
-        socials={brandSocials}
-      />
+        {/* Compact App Footer */}
+        <FooterSection
+          compact={true}
+          brandName={brandName}
+          brandWhatsapp={brandWhatsapp}
+          fullLogoUrl={fullLogoUrl}
+          address={brandAddress}
+          city={brandCity}
+          province={brandProvince}
+          email={brandEmail}
+          phone={brandPhone}
+          gmapsUrl={brandGmaps}
+          legalInfo={brandLegal}
+          socials={brandSocials}
+          bankAccounts={bankAccounts}
+        />
+
+        {/* Fixed Mobile Bottom Navigation Bar */}
+        <MobileBottomNav brandWhatsapp={brandWhatsapp} />
+      </div>
     </main>
   );
 }
-
-

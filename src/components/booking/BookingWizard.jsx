@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getMe } from '@/lib/portalApi';
@@ -94,17 +94,30 @@ function CustomSelect({ value, onChange, options: customOptions, placeholder = '
   );
 }
 
-export default function BookingWizard({ schedule, brandName, brandColor, brandId, initialBankAccounts = [], travelAccounts = [] }) {
+export default function BookingWizard({
+  schedule,
+  brandName,
+  brandColor,
+  brandId,
+  brandWhatsapp = '',
+  brandPpiu = 'No. 484/2020',
+  brandLegal = '',
+  initialRoom = 'quad',
+  initialBankAccounts = [],
+  travelAccounts = []
+}) {
   const router = useRouter();
   // Active step: 1 (Kamar), 2 (Data Jamaah), 3 (Konfirmasi), 4 (Pembayaran)
   const [step, setStep] = useState(1);
 
-  // Room Counts
-  const [counts, setCounts] = useState({
-    quad: 1,
-    triple: 0,
-    double: 0,
-    infant: 0,
+  // Room Counts - diinisialisasi dari query param room
+  const [counts, setCounts] = useState(() => {
+    const init = { quad: 0, triple: 0, double: 0, infant: 0 };
+    const norm = String(initialRoom || 'quad').toLowerCase();
+    if (norm === 'triple') init.triple = 1;
+    else if (norm === 'double') init.double = 1;
+    else init.quad = 1;
+    return init;
   });
 
   // Pemesan / Jamaah 1 (Contact Person)
@@ -252,6 +265,14 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
     counts.double * priceDouble +
     counts.infant * priceInfant;
   const totalDp = totalReguler * dpPerPax;
+
+  const durationDays = useMemo(() => {
+    if (!schedule?.berangkat_tanggal || !schedule?.pulang_tanggal) return 0;
+    const dep = new Date(schedule.berangkat_tanggal);
+    const ret = new Date(schedule.pulang_tanggal);
+    const diff = Math.round((ret - dep) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : 0;
+  }, [schedule?.berangkat_tanggal, schedule?.pulang_tanggal]);
 
   // Custom Alert Modal Trigger
   const showAlert = (msg) => {
@@ -836,31 +857,30 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
         </div>
       )}
 
-      {/* Stepper Header (HANYA tampil di Step 1, 2, 3 - TIDAK tampil di Step 4 / Instruksi Pembayaran) */}
+      {/* Stepper Header (HANYA tampil di Step 1, 2, 3) */}
       {step < 4 && (
-        <div className="flex items-center gap-2 sm:gap-3 mb-6 select-none overflow-x-auto pb-2">
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-neutral-100">
           {[
-            { num: 1, label: 'Pilih Kamar' },
+            { num: 1, label: 'Kamar' },
             { num: 2, label: 'Data Jamaah' },
             { num: 3, label: 'Konfirmasi' },
-          ].map((s, idx, arr) => {
+          ].map((s, idx) => {
             const isPassed = step > s.num;
             const isCurrent = step === s.num;
             return (
-              <div key={s.num} className="flex items-center gap-2 sm:gap-3 shrink-0">
-                <div className="flex items-center gap-2">
+              <React.Fragment key={s.num}>
+                <div className="flex items-center gap-1.5 shrink-0">
                   <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all shrink-0 ${
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10.5px] font-bold transition-all shrink-0 ${
                       isPassed
                         ? 'bg-emerald-600 text-white'
                         : isCurrent
-                        ? 'text-white shadow-xs'
-                        : 'border border-neutral-300 bg-white text-neutral-400 font-medium'
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'border border-neutral-300 bg-white text-neutral-400'
                     }`}
-                    style={isCurrent ? { backgroundColor: activeColor } : {}}
                   >
                     {isPassed ? (
-                      <svg className="w-3.5 h-3.5 text-white stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3 h-3 text-white stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
@@ -868,46 +888,122 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                     )}
                   </div>
                   <span
-                    className={`text-xs font-semibold transition-colors ${
-                      isPassed
-                        ? 'text-neutral-800'
-                        : isCurrent
-                        ? 'text-neutral-900'
-                        : 'text-neutral-400 font-medium'
+                    className={`text-[11.5px] font-bold ${
+                      isCurrent ? 'text-neutral-900' : isPassed ? 'text-neutral-700' : 'text-neutral-400'
                     }`}
-                    style={isCurrent ? { color: activeColor } : {}}
                   >
                     {s.label}
                   </span>
                 </div>
-                {idx < arr.length - 1 && (
-                  <div className="w-4 sm:w-8 h-[1px] bg-neutral-200 shrink-0" />
+                {idx < 2 && (
+                  <div className={`flex-1 h-[1.5px] mx-2 ${step > idx + 1 ? 'bg-emerald-500' : 'bg-neutral-200'}`} />
                 )}
-              </div>
+              </React.Fragment>
             );
           })}
         </div>
       )}
 
-      {/* Main Container Layout */}
-      <div className="flex flex-col md:flex-row items-start gap-6">
-        {/* Kolom Kiri: Form Content */}
-        <div className="w-full flex-1 min-w-0">
-          
-          {/* ─── STEP 1: PILIH KAMAR & JUMLAH JAMAAH ─── */}
-          {step === 1 && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 font-heading tracking-tight">
-                  Pilih Kamar & Jumlah Jamaah
-                </h1>
-                <p className="text-xs sm:text-sm text-neutral-500 mt-1 font-normal">
-                  Pilih tipe kamar dan jumlah jamaah sesuai kebutuhan.
-                </p>
+      {/* Main Container */}
+      <div className="w-full">
+        {/* ─── STEP 1: PILIH KAMAR & JUMLAH JAMAAH ─── */}
+        {step === 1 && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+            {/* Card Ringkasan Paket Terintegrasi */}
+            <div className="p-3.5 rounded-2xl bg-neutral-50/90 border border-neutral-200/90 shadow-2xs space-y-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold text-brand uppercase tracking-wider block">
+                    Paket Dipilih
+                  </span>
+                  <h2 className="text-[14px] font-extrabold text-neutral-900 leading-snug line-clamp-2">
+                    {schedule?.jadwal_nama}
+                  </h2>
+                </div>
+                {airlineLogoUrl ? (
+                  <div className="w-9 h-9 rounded-xl bg-white border border-neutral-200/80 p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                    <img src={airlineLogoUrl} alt={schedule.maskapai?.name || 'Maskapai'} className="w-full h-full object-contain" />
+                  </div>
+                ) : null}
               </div>
 
-              {/* List Room Cards */}
-              <div className="space-y-3 pt-2">
+              {/* Departure, Duration, Airline & Direct */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-neutral-600 font-medium pt-1.5 border-t border-neutral-200/70">
+                <span className="font-semibold text-neutral-800">{formatDate(schedule?.berangkat_tanggal)}</span>
+                {durationDays > 0 && (
+                  <>
+                    <span className="text-neutral-300">•</span>
+                    <span className="font-bold text-brand">{durationDays} Hari</span>
+                  </>
+                )}
+                {schedule?.maskapai?.name && (
+                  <>
+                    <span className="text-neutral-300">•</span>
+                    <span>{schedule.maskapai.name}</span>
+                  </>
+                )}
+                {schedule?.is_direct_flight && (
+                  <>
+                    <span className="text-neutral-300">•</span>
+                    <span className="text-neutral-600 font-semibold">Direct</span>
+                  </>
+                )}
+              </div>
+
+              {/* Hotel Mekkah & Madinah with Adjacent Star Rating */}
+              {(schedule?.hotel_mekkah || schedule?.hotel_madinah) && (
+                <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-neutral-200/70 text-[10.5px]">
+                  {schedule?.hotel_mekkah && (
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1 font-bold text-neutral-500 text-[9.5px] uppercase">
+                        <span>Mekkah</span>
+                        {Boolean(schedule.hotel_mekkah.star_rating) && (
+                          <span className="text-amber-500 font-bold">★ {schedule.hotel_mekkah.star_rating}</span>
+                        )}
+                      </div>
+                      <span className="font-bold text-neutral-900 truncate block">
+                        {schedule.hotel_mekkah.name}
+                      </span>
+                    </div>
+                  )}
+                  {schedule?.hotel_madinah && (
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1 font-bold text-neutral-500 text-[9.5px] uppercase">
+                        <span>Madinah</span>
+                        {Boolean(schedule.hotel_madinah.star_rating) && (
+                          <span className="text-amber-500 font-bold">★ {schedule.hotel_madinah.star_rating}</span>
+                        )}
+                      </div>
+                      <span className="font-bold text-neutral-900 truncate block">
+                        {schedule.hotel_madinah.name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Trust Badges */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-neutral-200/70">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                  Izin PPIU {brandPpiu}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                  100% Pasti Berangkat
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <h1 className="text-[16px] sm:text-[17px] font-bold text-neutral-900 font-heading tracking-tight">
+                Pilih Kamar & Jumlah Jamaah
+              </h1>
+              <p className="text-[11.5px] text-neutral-500 mt-0.5 font-normal">
+                Pilih tipe kamar dan tentukan jumlah pax jamaah.
+              </p>
+            </div>
+
+            {/* List Room Cards */}
+            <div className="space-y-3 pt-1">
                 {/* QUAD */}
                 <div className="relative">
                   <div className="absolute -top-2.5 left-4 z-10">
@@ -1060,34 +1156,65 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                 </div>
               </div>
 
-              {/* Sticky Bottom Action on Mobile / Inline on Desktop */}
-              <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md p-3.5 sm:p-0 sm:static sm:bg-transparent sm:border-0 sm:backdrop-blur-none shadow-[0_-4px_20px_rgba(0,0,0,0.08)] sm:shadow-none sm:pt-4">
-                <div className="container mx-auto max-w-4xl px-0 sm:px-0">
-                  <button
-                    type="button"
-                    onClick={goToStep2}
-                    disabled={totalReguler <= 0}
-                    className="btn-brand-cta w-full py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none shadow-sm"
-                  >
-                    <span>Isi Data Jamaah</span>
-                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                    </svg>
-                  </button>
+              {/* Sticky Bottom Action Bar */}
+              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white/95 backdrop-blur-md border-t border-x border-[#DDE2EC] px-4 py-3 shadow-lg flex items-center justify-between gap-3">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] text-neutral-500 font-medium truncate">
+                    {totalPax > 0 ? (
+                      <>
+                        {totalReguler > 0 ? `Total ${totalReguler} Pax Jamaah` : ''}
+                        {counts.infant > 0 ? `${totalReguler > 0 ? ' + ' : 'Total '}${counts.infant} Infant` : ''}
+                      </>
+                    ) : (
+                      'Pilih Kamar'
+                    )}
+                  </span>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-[17px] font-black text-neutral-900 leading-none tracking-tight">
+                      {formatRp(totalPrice)}
+                    </span>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={goToStep2}
+                  disabled={totalReguler <= 0}
+                  className="h-[42px] px-5 flex items-center justify-center gap-1.5 rounded-xl bg-brand text-white hover:brightness-110 active:scale-95 transition-all text-[12px] font-bold shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0 cursor-pointer"
+                >
+                  <span>Isi Data Jamaah</span>
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
               </div>
             </div>
           )}
 
           {/* ─── STEP 2: DATA LENGKAP JAMAAH ─── */}
           {step === 2 && (
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {/* Mini Package Summary Chip */}
+              <div className="p-3 rounded-2xl bg-neutral-50/90 border border-neutral-200/80 flex items-center justify-between gap-2 shadow-2xs">
+                <div className="min-w-0">
+                  <span className="font-bold text-neutral-900 truncate block text-[12px]">
+                    {schedule?.jadwal_nama}
+                  </span>
+                  <span className="text-[11px] text-neutral-500">
+                    {totalReguler} Jamaah{counts.infant > 0 ? ` + ${counts.infant} Infant` : ''} • Total: {formatRp(totalPrice)}
+                  </span>
+                </div>
+                <span className="text-[10.5px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full shrink-0">
+                  {formatDate(schedule?.berangkat_tanggal)}
+                </span>
+              </div>
+
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 font-heading tracking-tight">
+                <h1 className="text-[16px] sm:text-[17px] font-bold text-neutral-900 font-heading tracking-tight">
                   Data Jamaah
                 </h1>
-                <p className="text-xs sm:text-sm text-neutral-500 mt-1 font-normal">
-                  Isi data setiap jamaah. Pastikan nama sesuai KTP/Paspor.
+                <p className="text-[11.5px] text-neutral-500 mt-0.5 font-normal">
+                  Isi data jamaah sesuai identitas resmi KTP/Paspor.
                 </p>
               </div>
 
@@ -1793,53 +1920,67 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                                 isOverAge ? 'border-red-500 ring-1 ring-red-500' : ''
                               }`}
                             />
-                            {isOverAge && (
-                              <p className="text-[10.5px] text-red-600 font-normal mt-1 leading-relaxed">
-                                ⚠️ Usia bayi &ge; 2 tahun pada tanggal keberangkatan ({formatDate(schedule?.berangkat_tanggal)}). Silakan pilih kamar reguler.
-                              </p>
-                            )}
                           </div>
                         </div>
+
+                        {isOverAge && (
+                          <p className="text-[11px] text-red-600 font-normal leading-relaxed">
+                            ⚠️ Usia bayi &ge; 2 tahun pada tanggal keberangkatan ({formatDate(schedule?.berangkat_tanggal)}). Silakan pilih kamar reguler.
+                          </p>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               )}
 
-              {/* Sticky Bottom Action on Mobile / Inline on Desktop */}
-              <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md p-3.5 sm:p-0 sm:static sm:bg-transparent sm:border-0 sm:backdrop-blur-none shadow-[0_-4px_20px_rgba(0,0,0,0.08)] sm:shadow-none sm:pt-4">
-                <div className="container mx-auto max-w-4xl px-0 sm:px-0 flex items-center gap-2.5 sm:gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="px-5 sm:px-6 py-3.5 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer shrink-0"
-                  >
-                    Kembali
-                  </button>
-                  <button
-                    type="button"
-                    onClick={goToStep3}
-                    disabled={!picRoomType || phoneCheckStatus === 'idle' || phoneCheckStatus === 'checking' || phoneCheckStatus === 'error'}
-                    className="btn-brand-cta flex-1 py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    <span>Lanjut ke Konfirmasi</span>
-                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                    </svg>
-                  </button>
-                </div>
+              {/* Sticky Bottom Action Bar */}
+              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white/95 backdrop-blur-md border-t border-x border-[#DDE2EC] px-4 py-3 shadow-lg flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="h-[42px] px-4 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] transition-colors cursor-pointer shrink-0"
+                >
+                  Kembali
+                </button>
+                <button
+                  type="button"
+                  onClick={goToStep3}
+                  disabled={!picRoomType || phoneCheckStatus === 'idle' || phoneCheckStatus === 'checking' || phoneCheckStatus === 'error'}
+                  className="btn-brand-cta flex-1 h-[42px] rounded-xl font-bold text-white text-[12px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <span>Lanjut Konfirmasi</span>
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
               </div>
             </div>
           )}
 
           {/* ─── STEP 3: KONFIRMASI PENDAFTARAN ─── */}
           {step === 3 && (
-            <div className="space-y-5 animate-in fade-in duration-200">
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {/* Mini Package Summary Chip */}
+              <div className="p-3 rounded-2xl bg-neutral-50/90 border border-neutral-200/80 flex items-center justify-between gap-2 shadow-2xs">
+                <div className="min-w-0">
+                  <span className="font-bold text-neutral-900 truncate block text-[12px]">
+                    {schedule?.jadwal_nama}
+                  </span>
+                  <span className="text-[11px] text-neutral-500">
+                    {totalReguler} Jamaah • Total: {formatRp(totalPrice)}
+                  </span>
+                </div>
+                <span className="text-[10.5px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full shrink-0">
+                  {formatDate(schedule?.berangkat_tanggal)}
+                </span>
+              </div>
+
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 font-heading tracking-tight">
+                <h1 className="text-[16px] sm:text-[17px] font-bold text-neutral-900 font-heading tracking-tight">
                   Konfirmasi Booking
                 </h1>
-                <p className="text-xs sm:text-sm text-neutral-500 mt-1 font-normal">
+                <p className="text-[11.5px] text-neutral-500 mt-0.5 font-normal">
                   Pastikan data dan rincian paket sudah benar sebelum melanjutkan.
                 </p>
               </div>
@@ -1936,25 +2077,26 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
                 </div>
               </div>
 
-              {/* Sticky Bottom Action on Mobile / Inline on Desktop */}
-              <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md p-3.5 sm:p-0 sm:static sm:bg-transparent sm:border-0 sm:backdrop-blur-none shadow-[0_-4px_20px_rgba(0,0,0,0.08)] sm:shadow-none sm:pt-4">
-                <div className="container mx-auto max-w-4xl px-0 sm:px-0 flex items-center gap-2.5 sm:gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="px-5 sm:px-6 py-3.5 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors cursor-pointer shrink-0"
-                  >
-                    Kembali
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSubmitBooking}
-                    disabled={loading || !agree}
-                    className="btn-brand-cta flex-1 py-3.5 sm:py-4 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none shadow-sm"
-                  >
-                    {loading ? 'Memproses Booking...' : 'Konfirmasi & Lanjut Pembayaran'}
-                  </button>
-                </div>
+              {/* Sticky Bottom Action Bar */}
+              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white/95 backdrop-blur-md border-t border-x border-[#DDE2EC] px-4 py-3 shadow-lg flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="h-[42px] px-4 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] transition-colors cursor-pointer shrink-0"
+                >
+                  Kembali
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitBooking}
+                  disabled={loading || !agree}
+                  className="btn-brand-cta flex-1 h-[42px] rounded-xl font-bold text-white text-[12px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <span>{loading ? 'Memproses Booking...' : 'Konfirmasi & Bayar DP'}</span>
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
               </div>
             </div>
           )}
@@ -2123,184 +2265,6 @@ export default function BookingWizard({ schedule, brandName, brandColor, brandId
               </div>
             </div>
           )}
-        </div>
-
-        {/* ─── KOLOM KANAN: STICKY RINCIAN BOOKING (STEP 1, 2, 3) ─── */}
-        {step < 4 && (
-          <div className="w-full md:w-[320px] lg:w-[360px] shrink-0 space-y-4">
-            <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-2xs space-y-4 sticky top-24">
-              <div>
-                <h3 className="font-heading font-bold text-neutral-900 text-base">
-                  Rincian Booking
-                </h3>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  {schedule?.jadwal_nama || schedule?.package_name || 'Umroh Reguler Promo'} • {formatDate(schedule?.berangkat_tanggal)}
-                </p>
-              </div>
-
-              {/* Card Maskapai Penerbangan */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white border border-neutral-200/80 p-1.5 flex items-center justify-center shrink-0 shadow-2xs">
-                  {airlineLogoUrl ? (
-                    <img
-                      src={airlineLogoUrl}
-                      alt={schedule.maskapai?.name || 'Maskapai'}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <svg className="w-5 h-5 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                    MASKAPAI PENERBANGAN
-                  </span>
-                  <span className="text-xs font-bold text-neutral-900 truncate block">
-                    {schedule?.maskapai?.name || 'GARUDA INDONESIA'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Status Badges Row */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                {/* Tiket Confirmed: Menggunakan SVG Centang Bulat Resmi dari Card Paket */}
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-emerald-600 text-white px-2.5 py-1 rounded-full shadow-2xs leading-none">
-                  <svg className="w-3 h-3 fill-current shrink-0" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Tiket Confirmed
-                </span>
-
-                {/* Direct Badge */}
-                {(schedule?.is_direct_flight || schedule?.is_direct) && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-600 text-white px-2.5 py-1 rounded-full shadow-2xs leading-none">
-                    <svg className="w-2.5 h-2.5 fill-current transform rotate-90 shrink-0" viewBox="0 0 20 20">
-                      <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                    </svg>
-                    Direct
-                  </span>
-                )}
-
-                {/* Sisa Kursi Dinamis sesuai Aturan Progress Bar (Scarcity <= 10) */}
-                {seatSisa === 0 ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-neutral-100 text-neutral-600 border border-neutral-200 px-2.5 py-1 rounded-full leading-none">
-                    Full Booked
-                  </span>
-                ) : seatSisa <= 10 ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-red-50 text-red-600 border border-red-100 px-2.5 py-1 rounded-full leading-none">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                    Sisa {seatSisa} Kursi
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2.5 py-1 rounded-full leading-none">
-                    Tersedia
-                  </span>
-                )}
-              </div>
-
-              {/* Rincian Pilihan Kamar */}
-              <div className="pt-3 border-t border-neutral-100 text-xs">
-                {totalPax === 0 ? (
-                  <div className="py-4 px-3 bg-neutral-50/80 rounded-xl border border-dashed border-neutral-200 text-center">
-                    <p className="font-semibold text-neutral-700 text-xs">
-                      Belum ada kamar dipilih
-                    </p>
-                    <p className="text-[11px] text-neutral-400 mt-0.5">
-                      Pilih jumlah pax pada kamar di sebelah kiri
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2.5">
-                    {counts.quad > 0 && (
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-bold text-neutral-800">QUAD <span className="font-normal text-neutral-400">(Sekamar ber-4)</span></div>
-                          <div className="text-[11px] text-neutral-400 mt-0.5">{counts.quad} Orang &times; {formatRp(priceQuad)}</div>
-                        </div>
-                        <span className="font-bold text-neutral-900 text-sm">{formatRp(counts.quad * priceQuad)}</span>
-                      </div>
-                    )}
-
-                    {counts.triple > 0 && (
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-bold text-neutral-800">TRIPLE <span className="font-normal text-neutral-400">(Sekamar ber-3)</span></div>
-                          <div className="text-[11px] text-neutral-400 mt-0.5">{counts.triple} Orang &times; {formatRp(priceTriple)}</div>
-                        </div>
-                        <span className="font-bold text-neutral-900 text-sm">{formatRp(counts.triple * priceTriple)}</span>
-                      </div>
-                    )}
-
-                    {counts.double > 0 && (
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-bold text-neutral-800">DOUBLE <span className="font-normal text-neutral-400">(Sekamar ber-2)</span></div>
-                          <div className="text-[11px] text-neutral-400 mt-0.5">{counts.double} Orang &times; {formatRp(priceDouble)}</div>
-                        </div>
-                        <span className="font-bold text-neutral-900 text-sm">{formatRp(counts.double * priceDouble)}</span>
-                      </div>
-                    )}
-
-                    {counts.infant > 0 && (
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-bold text-neutral-800">INFANT <span className="font-normal text-neutral-400">(Bayi &lt; 2 Tahun)</span></div>
-                          <div className="text-[11px] text-neutral-400 mt-0.5">{counts.infant} Bayi &times; {formatRp(priceInfant)}</div>
-                        </div>
-                        <span className="font-bold text-neutral-900 text-sm">{formatRp(counts.infant * priceInfant)}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Total Harga Paket */}
-              <div className="pt-3.5 border-t border-neutral-100 flex items-baseline justify-between">
-                <span className="text-xs font-semibold text-neutral-700">Total Harga Paket</span>
-                <span className="font-bold text-emerald-600 text-base sm:text-lg">{formatRp(totalPrice)}</span>
-              </div>
-
-              {/* DP untuk Amankan Seat */}
-              <div className="pt-3 border-t border-neutral-100">
-                <div className="flex items-baseline justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-neutral-900 block">DP untuk Amankan Seat</span>
-                    <span className="text-[11px] text-neutral-400 mt-0.5 block">{totalReguler} Orang &times; {formatRp(dpPerPax)}</span>
-                  </div>
-                  <span className="font-bold text-neutral-900 text-base">{formatRp(totalDp)}</span>
-                </div>
-                <span className="text-[10.5px] text-neutral-400 mt-2 block leading-relaxed">
-                  Pelunasan dapat dicicil s/d H-45 keberangkatan
-                </span>
-              </div>
-
-              {/* Checklist Trust Bar */}
-              <div className="pt-3.5 border-t border-neutral-100 space-y-2 text-xs text-neutral-700">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-emerald-500 shrink-0 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-[11px] font-medium">Izin PPIU No. 401/2020 & Akreditasi A</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-emerald-500 shrink-0 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-[11px] font-medium">Garansi Tiket & Jadwal Pasti</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-emerald-500 shrink-0 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-[11px] font-medium">Berpengalaman 10th+ lebih</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

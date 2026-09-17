@@ -151,7 +151,7 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
                         </div>
                       )}
                       <span className="text-[8px] font-medium text-neutral-500 truncate">
-                        (±{schedule.hotel_mekkah.distance_m || '500'}m)
+                        {schedule.hotel_mekkah.distance_m != null ? `±${schedule.hotel_mekkah.distance_m}m` : '-'}
                       </span>
                     </div>
                   </>
@@ -183,7 +183,7 @@ export default function PackageCard({ schedule, brandWhatsapp, brandName, brandL
                         </div>
                       )}
                       <span className="text-[8px] font-medium text-neutral-500 truncate">
-                        (±{schedule.hotel_madinah.distance_m || '350'}m)
+                        {schedule.hotel_madinah.distance_m != null ? `±${schedule.hotel_madinah.distance_m}m` : '-'}
                       </span>
                     </div>
                   </>

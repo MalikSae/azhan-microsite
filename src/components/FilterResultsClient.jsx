@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SearchBar from './SearchBar';
 import SortDropdown from './SortDropdown';
@@ -193,27 +192,19 @@ export default function FilterResultsClient({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Breadcrumb & Clear Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-2 md:mb-4 px-1">
-        <nav className="flex items-center gap-2 text-xs sm:text-sm font-medium text-white/80">
-          <Link href="/" className="hover:text-white transition-colors">Beranda</Link>
-          <svg className="w-3 h-3 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-white font-semibold">Paket Umroh</span>
-        </nav>
-
-        {hasActiveFilters && (
+    <div className="space-y-4">
+      {/* Clear Filters row — only shown when active */}
+      {hasActiveFilters && (
+        <div className="flex items-center justify-end">
           <button
             type="button"
             onClick={handleClearFilter}
-            className="text-xs sm:text-sm font-semibold text-white/80 hover:text-white underline decoration-white/40 underline-offset-2 transition-colors cursor-pointer"
+            className="text-[12px] font-semibold text-neutral-500 hover:text-neutral-800 underline underline-offset-2 transition-colors cursor-pointer"
           >
             Hapus Semua Filter
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Active Filter Badges */}
       {hasActiveFilters && (
@@ -301,22 +292,22 @@ export default function FilterResultsClient({
       )}
 
       {/* Search & Sort Controls */}
-      <div className="bg-white rounded-2xl md:rounded-3xl border border-neutral-100/90 shadow-md p-3 sm:p-4 md:p-5 ring-1 ring-black/5 space-y-3.5 sm:space-y-4">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center border border-neutral-200/90 rounded-xl md:rounded-2xl bg-neutral-50/40 hover:bg-neutral-50/70 transition-colors divide-y md:divide-y-0 md:divide-x divide-neutral-200/90 shadow-2xs">
+      <div className="bg-white rounded-2xl border border-[#DDE2EC] shadow-xs p-3 space-y-3">
+        <div className="flex flex-col items-stretch border border-neutral-200/80 rounded-xl bg-neutral-50/50 divide-y divide-neutral-200/80 shadow-2xs">
           <div className="flex-1 min-w-0">
             <SearchBar 
               value={searchQuery} 
               onChange={setSearchQuery} 
               variant="borderless"
-              className="py-3 px-4 rounded-t-xl md:rounded-none md:rounded-l-2xl"
+              className="py-2.5 px-4 rounded-t-xl"
             />
           </div>
-          <div className="w-full md:w-[280px] shrink-0">
+          <div className="w-full">
             <SortDropdown 
               value={sortBy} 
               onChange={setSortBy} 
               variant="borderless"
-              className="py-3 px-4 rounded-b-xl md:rounded-none md:rounded-r-2xl"
+              className="py-2.5 px-4 rounded-b-xl"
             />
           </div>
         </div>
@@ -393,7 +384,7 @@ export default function FilterResultsClient({
       {/* Package Grid */}
       {filteredAndSortedSchedules.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+          <div className="flex flex-col gap-3">
             {filteredAndSortedSchedules.slice(0, visibleCount).map((schedule) => (
               <PackageCard
                 key={schedule.id}
