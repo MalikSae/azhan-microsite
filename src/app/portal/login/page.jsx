@@ -36,7 +36,7 @@ export default function PortalLoginPage() {
     const cleanIdentifier = identifier.trim();
 
     if (!cleanIdentifier) {
-      setErrorMessage('ID Jamaah atau No. WhatsApp wajib diisi');
+      setErrorMessage('Nomor WhatsApp atau ID Jamaah wajib diisi');
       return;
     }
 
@@ -50,7 +50,7 @@ export default function PortalLoginPage() {
       await login(brandId, cleanIdentifier, pin);
       router.push('/portal');
     } catch (err) {
-      setErrorMessage(err.message || 'ID jamaah, nomor WhatsApp, atau PIN tidak cocok');
+      setErrorMessage(err.message || 'Nomor WhatsApp atau PIN tidak cocok');
     } finally {
       setIsSubmitting(false);
     }
@@ -76,9 +76,9 @@ export default function PortalLoginPage() {
     : '#';
 
   return (
-    <div className="min-h-dvh w-full bg-white sm:bg-neutral-100 flex justify-center items-center overflow-x-hidden">
-      {/* Frame Kontainer Utama */}
-      <div className="w-full max-w-[420px] min-h-dvh sm:max-h-[920px] bg-white sm:border-x sm:border-neutral-200/80 sm:shadow-lg flex flex-col justify-between overflow-hidden">
+    <main className="min-h-screen bg-[#EEF2F6] pb-20 md:pb-6">
+      {/* Frame Kontainer Utama (Locked to max-w-md, konsisten dengan Home & Detail Paket) */}
+      <div className="max-w-md mx-auto min-h-screen bg-white border-x border-neutral-100 shadow-2xl shadow-neutral-300/30 flex flex-col justify-between relative overflow-hidden">
         {/* Konten Atas & Form */}
         <div className="flex flex-col flex-1">
           {/* Header Image Ka'bah */}
@@ -128,23 +128,30 @@ export default function PortalLoginPage() {
           <section className="w-full bg-white rounded-t-3xl sm:rounded-t-[2rem] -mt-6 relative z-10 px-6 sm:px-8 pt-7 pb-6 flex-1 flex flex-col justify-between shadow-xs">
             <div className="w-full max-w-[340px] mx-auto flex flex-col">
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Field 1: ID Jamaah dengan Icon User */}
+                {/* Field 1: Nomor WhatsApp (Default) dengan opsi ID Jamaah */}
                 <div>
-                  <label htmlFor="identifier" className="block text-xs font-semibold text-neutral-700 mb-1.5">
-                    ID Jamaah atau No. WhatsApp
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="identifier" className="block text-xs font-semibold text-neutral-700">
+                      Nomor WhatsApp
+                    </label>
+                    <span className="text-[10.5px] text-neutral-400 font-normal">
+                      atau ID Jamaah
+                    </span>
+                  </div>
                   <div className="relative">
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                     </div>
                     <input
                       id="identifier"
                       type="text"
+                      inputMode="text"
+                      autoComplete="tel"
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="HN-2608000001"
+                      placeholder="081234567890"
                       required
                       className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all bg-neutral-50/40 focus:bg-white"
                     />
@@ -260,6 +267,6 @@ export default function PortalLoginPage() {
           </p>
         </footer>
       </div>
-    </div>
+    </main>
   );
 }

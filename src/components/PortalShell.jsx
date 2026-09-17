@@ -89,18 +89,18 @@ export default function PortalShell({ children }) {
   }
 
   return (
-    <div className="min-h-dvh w-full bg-white sm:bg-neutral-100 flex justify-center items-center overflow-x-hidden">
-      {/* Frame Kontainer Utama */}
-      <div className="w-full max-w-[420px] min-h-dvh bg-white sm:border-x sm:border-neutral-200/80 sm:shadow-lg flex flex-col justify-between relative overflow-hidden">
-        {/* Area Konten */}
-        <main className="flex-1 flex flex-col overflow-y-auto pb-16 w-full">
+    <div className="min-h-screen w-full bg-[#EEF2F6] pb-20 md:pb-6">
+      {/* Frame Kontainer Utama (Locked to max-w-md, konsisten dengan Home & Detail Paket) */}
+      <div className="max-w-md mx-auto min-h-screen bg-white border-x border-neutral-100 shadow-2xl shadow-neutral-300/30 flex flex-col justify-between relative">
+        {/* Area Konten (Window Scroll naturally, no internal scrollbar eating content width) */}
+        <main className="flex-1 flex flex-col pb-16 w-full">
           {children}
         </main>
 
-        {/* Bottom Navigation Bar (Dalam batas frame 420px, ter-center di desktop) */}
+        {/* Bottom Navigation Bar (Dalam batas frame max-w-md, ter-center di desktop) */}
         <nav
           aria-label="Navigasi Portal"
-          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] bg-white/95 backdrop-blur-md border-t border-neutral-200/80 z-30 px-2"
+          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-x border-neutral-100 z-30 px-2 shadow-lg shadow-neutral-950/5"
         >
           <div className="grid grid-cols-4 h-14">
             {navItems.map((item) => {

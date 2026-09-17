@@ -187,9 +187,9 @@ function AktivasiContent() {
   const fullIconUrl = targetIcon ? (targetIcon.startsWith('http') ? targetIcon : `${apiBaseUrl}${targetIcon}`) : null;
 
   return (
-    <div className="min-h-dvh w-full bg-white sm:bg-neutral-100 flex justify-center items-center overflow-x-hidden">
-      {/* Frame Kontainer Utama */}
-      <div className="w-full max-w-[420px] min-h-dvh sm:max-h-[920px] bg-white sm:border-x sm:border-neutral-200/80 sm:shadow-lg flex flex-col justify-between overflow-hidden">
+    <main className="min-h-screen bg-[#EEF2F6] pb-20 md:pb-6">
+      {/* Frame Kontainer Utama (Locked to max-w-md, konsisten dengan Home & Detail Paket) */}
+      <div className="max-w-md mx-auto min-h-screen bg-white border-x border-neutral-100 shadow-2xl shadow-neutral-300/30 flex flex-col justify-between relative overflow-hidden">
         {/* Konten Atas & Form */}
         <div className="flex flex-col flex-1">
           {/* Header Image Ka'bah (Zona Atas) */}
@@ -519,7 +519,7 @@ function AktivasiContent() {
           </p>
         </footer>
       </div>
-    </div>
+    </main>
   );
 }
 
