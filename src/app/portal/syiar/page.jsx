@@ -8,6 +8,7 @@ import { getAgenStatus } from '@/lib/portalApi';
 import { formatRupiah } from '@/lib/portalFormat';
 import Badge from '@/components/ui/Badge';
 import StatusPembayaranAgen from './StatusPembayaranAgen';
+import DashboardAgen from './DashboardAgen';
 
 // Portal Syiar — satu route, tampilan mengikuti status_agen (screen A1, A2, A3, A4).
 export default function PortalSyiarPage() {
@@ -137,10 +138,8 @@ export default function PortalSyiarPage() {
                 Bagikan link Anda. Jamaah yang mendaftar lewat link ini tercatat sebagai jamaah Anda.
               </p>
             </div>
-            <p className="text-xs text-neutral-500 border-t border-neutral-100 pt-3">
-              Dashboard komisi, riwayat, dan pencairan saldo segera hadir di halaman ini.
-            </p>
           </div>
+          <DashboardAgen />
           {pembayaranBelumBeres && (
             <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-4 space-y-3">
               <StatusPembayaranAgen pembayaran={bayar} />

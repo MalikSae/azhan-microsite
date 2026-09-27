@@ -131,6 +131,39 @@ export async function kirimBuktiPendaftaranAgen(buktiTransferUrl) {
   return data;
 }
 
+// Agen aktif: dashboard (A3), riwayat komisi (A6), booking Jalur 1 (A5).
+export async function getAgenDashboard() {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen/dashboard`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal memuat dashboard agen');
+  return data;
+}
+
+export async function listKomisiAgen({ limit = 50, offset = 0 } = {}) {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen/komisi?limit=${limit}&offset=${offset}`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal memuat riwayat komisi');
+  return data;
+}
+
+export async function listJamaahSaya(q = '') {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen/jamaah?q=${encodeURIComponent(q)}`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal memuat daftar jamaah');
+  return data;
+}
+
+export async function buatBookingAgen(payload) {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen/bookings`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Booking gagal dibuat');
+  return data;
+}
+
 export async function listMyDokumen() {
   const res = await fetch(`${API_BASE_URL}/api/portal/dokumen`, {
     headers: authHeaders(),

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getMe } from '@/lib/portalApi';
+import { getMe, listJamaahSaya, buatBookingAgen } from '@/lib/portalApi';
 
 // Format Rupiah Helper
 const formatRp = (num) => {
@@ -104,7 +104,11 @@ export default function BookingWizard({
   brandLegal = '',
   initialRoom = 'quad',
   initialBankAccounts = [],
-  travelAccounts = []
+  travelAccounts = [],
+  // Mode agen (Jalur 1, screen A5): agen login membuat booking untuk
+  // jamaahnya. Agen bukan PIC; tanpa cek nomor dan PIN; pax bisa dipilih
+  // dari "Jamaah Saya" (repeat order). Dikirim ke /api/portal/agen/bookings.
+  agenMode = false
 }) {
   const router = useRouter();
   // Active step: 1 (Kamar), 2 (Data Jamaah), 3 (Konfirmasi), 4 (Pembayaran)
@@ -159,8 +163,71 @@ export default function BookingWizard({
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // Mode agen: daftar jamaah milik agen + jamaah terpilih sebagai PIC.
+  const [jamaahSaya, setJamaahSaya] = useState([]);
+  const [picJamaahId, setPicJamaahId] = useState(null);
+
+  useEffect(() => {
+    if (!agenMode) return;
+    listJamaahSaya().then(setJamaahSaya).catch(() => setJamaahSaya([]));
+  }, [agenMode]);
+
+  // Jamaah yang sudah dipakai di booking ini tidak ditawarkan lagi.
+  const usedJamaahIds = new Set(
+    [picJamaahId, ...jamaahQuad, ...jamaahTriple, ...jamaahDouble]
+      .map((x) => (x && typeof x === 'object' ? x.jamaah_id : x))
+      .filter(Boolean)
+  );
+
+  const pilihJamaahSaya = (onPick) => (
+    <select
+      value=""
+      onChange={(e) => {
+        const j = jamaahSaya.find((x) => String(x.id) === e.target.value);
+        if (j) onPick(j);
+      }}
+      className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+    >
+      <option value="">Pilih dari Jamaah Saya (repeat order)...</option>
+      {jamaahSaya.filter((j) => !usedJamaahIds.has(j.id)).map((j) => (
+        <option key={j.id} value={j.id}>
+          {j.nama_lengkap}{j.no_hp_masked ? ` · ${j.no_hp_masked}` : ''}
+        </option>
+      ))}
+    </select>
+  );
+
+  const chipJamaahSaya = (nama, onReset) => (
+    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-neutral-50 border border-neutral-200">
+      <div className="min-w-0">
+        <p className="text-sm font-bold text-neutral-900 truncate">{nama}</p>
+        <p className="text-[11px] text-neutral-500">Jamaah Saya • repeat order</p>
+      </div>
+      <button type="button" onClick={onReset} className="text-[11px] font-semibold text-neutral-600 underline shrink-0 cursor-pointer">
+        Ganti
+      </button>
+    </div>
+  );
+
+  // Slot anggota (kamar Quad/Triple/Double) di mode agen.
+  const renderSlotJamaahSaya = (arr, setArr, idx) => {
+    const row = arr[idx] || {};
+    const set = (patch) => {
+      const next = [...arr];
+      next[idx] = { ...row, ...patch };
+      setArr(next);
+    };
+    if (row.jamaah_id) {
+      return chipJamaahSaya(row.nama, () => set({ jamaah_id: undefined, nama: '', jenis_kelamin: '', no_hp: '' }));
+    }
+    if (jamaahSaya.length === 0) return null;
+    return pilihJamaahSaya((j) => set({ jamaah_id: j.id, nama: j.nama_lengkap, jenis_kelamin: j.jenis_kelamin || 'L', no_hp: '' }));
+  };
+
   // Restore Step 4 state from sessionStorage on mount / refresh
   useEffect(() => {
+    // Mode agen tidak memulihkan hasil booking publik dari sesi browser.
+    if (agenMode) return;
     try {
       const storageKey = `booking_result_${schedule?.id}`;
       const savedResult = sessionStorage.getItem(storageKey);
@@ -186,12 +253,14 @@ export default function BookingWizard({
     } catch (e) {
       console.error('Failed to restore booking state:', e);
     }
-  }, [schedule?.id, schedule?.harga_double, schedule?.harga_infant, schedule?.minimal_dp, initialBankAccounts, travelAccounts]);
+  }, [schedule?.id, schedule?.harga_double, schedule?.harga_infant, schedule?.minimal_dp, initialBankAccounts, travelAccounts, agenMode]);
 
   // Auto-detect Portal Jamaah login session
   useEffect(() => {
     const checkAuth = async () => {
       if (typeof window === 'undefined') return;
+      // Mode agen: yang login adalah agen, bukan PIC booking.
+      if (agenMode) return;
       const token = localStorage.getItem('portal_access_token');
       if (!token) return;
 
@@ -223,7 +292,7 @@ export default function BookingWizard({
     };
 
     checkAuth();
-  }, [schedule?.brand_id, brandId]);
+  }, [schedule?.brand_id, brandId, agenMode]);
 
   const handleLogoutAuth = () => {
     if (typeof window !== 'undefined') {
@@ -471,7 +540,7 @@ export default function BookingWizard({
       return;
     }
     const cleanPhone = picPhone.replace(/\D/g, '');
-    if (cleanPhone.length < 9) {
+    if (!(agenMode && picJamaahId) && cleanPhone.length < 9) {
       showAlert('Nomor WhatsApp Pemesan tidak valid (minimal 9 digit).');
       return;
     }
@@ -553,7 +622,9 @@ export default function BookingWizard({
 
   // Submit Booking (Step 3 -> Step 4)
   const handleSubmitBooking = async () => {
-    if (phoneCheckStatus === 'baru') {
+    if (agenMode) {
+      // Booking agen: tanpa PIN; jamaah baru mengaktifkan akun portalnya sendiri.
+    } else if (phoneCheckStatus === 'baru') {
       if (picPin.length !== 6 || !/^\d{6}$/.test(picPin)) {
         setStep(2);
         showAlert('PIN Portal Jamaah wajib 6 digit angka.');
@@ -594,6 +665,7 @@ export default function BookingWizard({
         anggota.push({
           pax_type: 'reguler',
           nama_lengkap: (jamaahQuad[i]?.nama || '').trim(),
+          jamaah_id: agenMode ? jamaahQuad[i]?.jamaah_id : undefined,
           no_hp: jamaahQuad[i]?.no_hp ? jamaahQuad[i].no_hp.replace(/\D/g, '') : undefined,
           jenis_kelamin: jamaahQuad[i]?.jenis_kelamin || 'L',
           room_type: 'Quad',
@@ -606,6 +678,7 @@ export default function BookingWizard({
         anggota.push({
           pax_type: 'reguler',
           nama_lengkap: (jamaahTriple[i]?.nama || '').trim(),
+          jamaah_id: agenMode ? jamaahTriple[i]?.jamaah_id : undefined,
           no_hp: jamaahTriple[i]?.no_hp ? jamaahTriple[i].no_hp.replace(/\D/g, '') : undefined,
           jenis_kelamin: jamaahTriple[i]?.jenis_kelamin || 'L',
           room_type: 'Triple',
@@ -618,6 +691,7 @@ export default function BookingWizard({
         anggota.push({
           pax_type: 'reguler',
           nama_lengkap: (jamaahDouble[i]?.nama || '').trim(),
+          jamaah_id: agenMode ? jamaahDouble[i]?.jamaah_id : undefined,
           no_hp: jamaahDouble[i]?.no_hp ? jamaahDouble[i].no_hp.replace(/\D/g, '') : undefined,
           jenis_kelamin: jamaahDouble[i]?.jenis_kelamin || 'L',
           room_type: 'Double',
@@ -645,32 +719,38 @@ export default function BookingWizard({
           email: picEmail.trim() || undefined,
           jenis_kelamin: picGender || 'L',
           room_type: picRoomType,
-          portal_pin: phoneCheckStatus === 'baru' ? picPin : (phoneCheckStatus === 'perlu_pin' ? picPinVerify : ''),
+          portal_pin: agenMode ? '' : (phoneCheckStatus === 'baru' ? picPin : (phoneCheckStatus === 'perlu_pin' ? picPinVerify : '')),
+          jamaah_id: agenMode && picJamaahId ? picJamaahId : undefined,
         },
         anggota: anggota,
       };
 
-      const token = typeof window !== 'undefined' ? localStorage.getItem('portal_access_token') : null;
-      const requestHeaders = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        requestHeaders['Authorization'] = `Bearer ${token}`;
+      let data;
+      if (agenMode) {
+        data = await buatBookingAgen(payload);
+      } else {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('portal_access_token') : null;
+        const requestHeaders = {
+          'Content-Type': 'application/json',
+        };
+        if (token) {
+          requestHeaders['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch('/api/public/book', {
+          method: 'POST',
+          headers: requestHeaders,
+          body: JSON.stringify(payload),
+        });
+
+        data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Terjadi kesalahan saat memproses pendaftaran booking.');
+        }
       }
 
-      const res = await fetch('/api/public/book', {
-        method: 'POST',
-        headers: requestHeaders,
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Terjadi kesalahan saat memproses pendaftaran booking.');
-      }
-
-      if (data.portal_token && typeof window !== 'undefined') {
+      if (!agenMode && data.portal_token && typeof window !== 'undefined') {
         localStorage.setItem('portal_access_token', data.portal_token);
       }
 
@@ -683,7 +763,7 @@ export default function BookingWizard({
         pic_phone: picPhone.replace(/\D/g, ''),
       };
 
-      try {
+      if (!agenMode) try {
         const storageKey = `booking_result_${schedule?.id}`;
         sessionStorage.setItem(storageKey, JSON.stringify(resultData));
         const newUrl = `${window.location.pathname}?step=success&code=${data.booking?.booking_code}`;
@@ -702,7 +782,9 @@ export default function BookingWizard({
       const msg = err.message || 'Gagal mengirim formulir booking. Silakan coba lagi.';
       if (
         msg.includes('nomor atau PIN tidak cocok') ||
-        msg.includes('nomor tidak dapat digunakan')
+        msg.includes('nomor tidak dapat digunakan') ||
+        msg.includes('nomor sudah terdaftar') ||
+        msg.includes('Jamaah Saya')
       ) {
         setStep(2);
       }
@@ -1229,6 +1311,31 @@ export default function BookingWizard({
                   </p>
                 </div>
 
+                {agenMode && (
+                  picJamaahId
+                    ? chipJamaahSaya(picNama, () => {
+                        setPicJamaahId(null);
+                        setPicNama('');
+                        setPicGender('');
+                      })
+                    : (
+                      <div className="space-y-1.5">
+                        {jamaahSaya.length > 0 && pilihJamaahSaya((j) => {
+                          setPicJamaahId(j.id);
+                          setPicNama(j.nama_lengkap);
+                          setPicGender(j.jenis_kelamin || 'L');
+                          setPicPhone('');
+                        })}
+                        <p className="text-[11px] text-neutral-500 leading-relaxed">
+                          Jamaah baru tercatat sebagai jamaah Anda. Nomor yang sudah terdaftar atas nama jamaah lain tidak bisa dipakai.
+                        </p>
+                      </div>
+                    )
+                )}
+
+                {!(agenMode && picJamaahId) && (
+                <>
+
                 {loggedInUser && (
                   <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 animate-in fade-in duration-150">
                     <div className="flex items-center gap-2.5">
@@ -1289,7 +1396,7 @@ export default function BookingWizard({
                           setPhoneCheckStatus('idle');
                         }
                       }}
-                      onBlur={() => !loggedInUser && checkPhone(picPhone)}
+                      onBlur={() => !loggedInUser && !agenMode && checkPhone(picPhone)}
                       placeholder="08123456789"
                       className={`w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand font-mono ${
                         loggedInUser ? 'bg-neutral-100 text-neutral-600 cursor-not-allowed pr-28' : 'bg-white'
@@ -1333,6 +1440,8 @@ export default function BookingWizard({
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
                   />
                 </div>
+                </>
+                )}
 
                 {/* Cabang 1: Checking */}
                 {phoneCheckStatus === 'checking' && (
@@ -1578,6 +1687,9 @@ export default function BookingWizard({
                           </div>
                         ) : (
                           <>
+                            {agenMode && renderSlotJamaahSaya(jamaahQuad, setJamaahQuad, idx)}
+                            {!jamaahQuad[idx]?.jamaah_id && (
+                            <>
                             <div>
                               <label className="block text-xs font-semibold text-neutral-700 mb-1">
                                 Nama Lengkap (Sesuai KTP/Paspor) <span className="text-red-500">*</span>
@@ -1628,6 +1740,8 @@ export default function BookingWizard({
                                 />
                               </div>
                             </div>
+                            </>
+                            )}
                           </>
                         )}
                       </div>
@@ -1677,6 +1791,9 @@ export default function BookingWizard({
                           </div>
                         ) : (
                           <>
+                            {agenMode && renderSlotJamaahSaya(jamaahTriple, setJamaahTriple, idx)}
+                            {!jamaahTriple[idx]?.jamaah_id && (
+                            <>
                             <div>
                               <label className="block text-xs font-semibold text-neutral-700 mb-1">
                                 Nama Lengkap (Sesuai KTP/Paspor) <span className="text-red-500">*</span>
@@ -1727,6 +1844,8 @@ export default function BookingWizard({
                                 />
                               </div>
                             </div>
+                            </>
+                            )}
                           </>
                         )}
                       </div>
@@ -1776,6 +1895,9 @@ export default function BookingWizard({
                           </div>
                         ) : (
                           <>
+                            {agenMode && renderSlotJamaahSaya(jamaahDouble, setJamaahDouble, idx)}
+                            {!jamaahDouble[idx]?.jamaah_id && (
+                            <>
                             <div>
                               <label className="block text-xs font-semibold text-neutral-700 mb-1">
                                 Nama Lengkap (Sesuai KTP/Paspor) <span className="text-red-500">*</span>
@@ -1826,6 +1948,8 @@ export default function BookingWizard({
                                 />
                               </div>
                             </div>
+                            </>
+                            )}
                           </>
                         )}
                       </div>
@@ -1946,7 +2070,7 @@ export default function BookingWizard({
                 <button
                   type="button"
                   onClick={goToStep3}
-                  disabled={!picRoomType || phoneCheckStatus === 'idle' || phoneCheckStatus === 'checking' || phoneCheckStatus === 'error'}
+                  disabled={!picRoomType || (!agenMode && (phoneCheckStatus === 'idle' || phoneCheckStatus === 'checking' || phoneCheckStatus === 'error'))}
                   className="btn-brand-cta flex-1 h-[42px] rounded-xl font-bold text-white text-[12px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none"
                 >
                   <span>Lanjut Konfirmasi</span>
