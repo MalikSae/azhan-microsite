@@ -64,6 +64,12 @@ export default function DashboardAgen() {
         >
           Buat Booking untuk Jamaah
         </Link>
+        <Link
+          href="/portal/syiar/pencairan"
+          className="block w-full py-2.5 px-4 rounded-xl border border-neutral-300 bg-white text-neutral-800 text-sm font-semibold text-center hover:bg-neutral-50 transition-all"
+        >
+          Tarik Saldo
+        </Link>
       </div>
 
       <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-4 sm:p-5 space-y-2.5">

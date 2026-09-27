@@ -164,6 +164,35 @@ export async function buatBookingAgen(payload) {
   return data;
 }
 
+// Tarik saldo (A7).
+export async function getPencairanAgen() {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen/pencairan`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal memuat data pencairan');
+  return data;
+}
+
+export async function ajukanPencairanAgen(payload) {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen/pencairan`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Pengajuan pencairan gagal dikirim');
+  return data;
+}
+
+// Bukti transfer keluar milik agen sendiri, dibuka sebagai blob.
+export async function bukaBuktiPencairan(id) {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen/pencairan/${id}/bukti`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Bukti transfer tidak dapat dibuka');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 export async function listMyDokumen() {
   const res = await fetch(`${API_BASE_URL}/api/portal/dokumen`, {
     headers: authHeaders(),
