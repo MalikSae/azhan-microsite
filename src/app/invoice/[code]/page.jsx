@@ -1,19 +1,25 @@
+import { cache } from 'react';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import DigitalInvoiceView from '@/components/invoice/DigitalInvoiceView';
+import { clientIpHeaders } from '@/lib/forwardClientIp';
 
-async function getInvoice(code) {
+// cache(): generateMetadata dan halaman memakai hasil yang sama dalam satu
+// request, jadi API hanya dipanggil sekali per kunjungan.
+const getInvoice = cache(async (code) => {
   if (!code) return null;
   const baseUrl = process.env.API_BASE_URL_INTERNAL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   try {
     const res = await fetch(`${baseUrl}/api/public/invoice/${encodeURIComponent(code)}`, {
       cache: 'no-store',
+      headers: clientIpHeaders(await headers()),
     });
     if (!res.ok) return null;
     return await res.json();
   } catch (err) {
     return null;
   }
-}
+});
 
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
