@@ -1,48 +1,108 @@
-"use client";
-import { useEffect, useRef } from 'react';
+'use client';
 
-export default function Turnstile({ siteKey, onVerify, theme = 'light' }) {
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+
+// Widget Cloudflare Turnstile. Token dikirim ke parent lewat onToken; token
+// kosong ('') berarti belum lolos, kedaluwarsa, atau error. Token hanya bisa
+// dipakai sekali, jadi parent memanggil ref.reset() setelah submit gagal.
+//
+// Tanpa NEXT_PUBLIC_TURNSTILE_SITE_KEY:
+// - development: token 'dev-turnstile-token' (backend tanpa TURNSTILE_SECRET_KEY
+//   menerimanya), supaya pengembangan lokal tidak butuh Cloudflare;
+// - production: tidak ada token sama sekali dan pesan konfigurasi tampil,
+//   sehingga salah konfigurasi langsung terlihat, bukan diam-diam lolos.
+
+const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+const DEV_TOKEN = 'dev-turnstile-token';
+
+let scriptPromise = null;
+function loadScript() {
+  if (typeof window === 'undefined') return Promise.reject(new Error('no window'));
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+  if (!scriptPromise) {
+    scriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = SCRIPT_SRC;
+      script.async = true;
+      script.onload = () => resolve(window.turnstile);
+      script.onerror = () => {
+        scriptPromise = null;
+        reject(new Error('Turnstile gagal dimuat'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return scriptPromise;
+}
+
+const Turnstile = forwardRef(function Turnstile(
+  { onToken, action, siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY },
+  ref
+) {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
+  const onTokenRef = useRef(onToken);
+  const [loadError, setLoadError] = useState(false);
+  const devMode = !siteKey && process.env.NODE_ENV !== 'production';
 
   useEffect(() => {
-    // For MVP/Local testing, if siteKey is missing or dummy, we mock it.
-    if (!siteKey || siteKey === 'dummy-key') {
-      console.log('Turnstile mock: auto verifying');
-      const timer = setTimeout(() => {
-        if (onVerify) onVerify('dummy-turnstile-token-12345');
-      }, 500);
-      return () => clearTimeout(timer);
-    }
+    onTokenRef.current = onToken;
+  }, [onToken]);
 
-    // Real Turnstile initialization
-    const loadTurnstile = () => {
-      if (window.turnstile && containerRef.current) {
-        widgetIdRef.current = window.turnstile.render(containerRef.current, {
-          sitekey: siteKey,
-          callback: onVerify,
-          theme: theme,
-        });
+  useImperativeHandle(ref, () => ({
+    reset() {
+      if (devMode) return;
+      onTokenRef.current?.('');
+      if (window.turnstile && widgetIdRef.current !== null) {
+        window.turnstile.reset(widgetIdRef.current);
       }
-    };
+    },
+  }), [devMode]);
 
-    if (!window.turnstile) {
-      const script = document.createElement('script');
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-      script.async = true;
-      script.defer = true;
-      script.onload = loadTurnstile;
-      document.head.appendChild(script);
-    } else {
-      loadTurnstile();
+  useEffect(() => {
+    if (!siteKey) {
+      onTokenRef.current?.(devMode ? DEV_TOKEN : '');
+      return undefined;
     }
-
+    let cancelled = false;
+    loadScript()
+      .then((turnstile) => {
+        if (cancelled || !containerRef.current) return;
+        widgetIdRef.current = turnstile.render(containerRef.current, {
+          sitekey: siteKey,
+          action,
+          theme: 'light',
+          callback: (token) => onTokenRef.current?.(token),
+          'expired-callback': () => onTokenRef.current?.(''),
+          'error-callback': () => onTokenRef.current?.(''),
+        });
+      })
+      .catch(() => !cancelled && setLoadError(true));
     return () => {
-      if (window.turnstile && widgetIdRef.current) {
+      cancelled = true;
+      if (window.turnstile && widgetIdRef.current !== null) {
         window.turnstile.remove(widgetIdRef.current);
       }
+      widgetIdRef.current = null;
     };
-  }, [siteKey, theme, onVerify]);
+  }, [siteKey, action, devMode]);
 
-  return <div ref={containerRef}></div>;
-}
+  if (!siteKey) {
+    return devMode ? (
+      <p className="text-[11px] text-neutral-400">Verifikasi keamanan nonaktif (mode pengembangan).</p>
+    ) : (
+      <p className="text-xs text-danger-700">Verifikasi keamanan belum dikonfigurasi. Silakan hubungi admin.</p>
+    );
+  }
+
+  return (
+    <div className="min-h-[65px]">
+      <div ref={containerRef} />
+      {loadError && (
+        <p className="text-xs text-danger-700">Verifikasi keamanan gagal dimuat. Periksa koneksi lalu muat ulang halaman.</p>
+      )}
+    </div>
+  );
+});
+
+export default Turnstile;

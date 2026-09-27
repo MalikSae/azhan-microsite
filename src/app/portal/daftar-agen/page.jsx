@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useBrand } from '@/context/BrandContext';
 import { usePortalAuth } from '@/context/PortalAuthContext';
+import Turnstile from '@/components/ui/Turnstile';
 
 // Screen A0 — daftar akun untuk calon Agen Syiar yang belum punya akun jamaah
 // (agen-azhan.md 3.6.2). Setelah akun dibuat, pemohon langsung masuk ke portal
@@ -24,8 +25,8 @@ export default function DaftarAgenPage() {
   const [noHp, setNoHp] = useState('');
   const [pin, setPin] = useState('');
   const [pinKonfirmasi, setPinKonfirmasi] = useState('');
-  // TODO(turnstile): ganti dengan token widget Turnstile asli, sama seperti BookingWizard.
-  const [captchaToken] = useState('demo-turnstile-token');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const turnstileRef = useRef(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [nomorTerdaftar, setNomorTerdaftar] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,6 +59,10 @@ export default function DaftarAgenPage() {
       setErrorMessage('Konfirmasi PIN tidak sama');
       return;
     }
+    if (!captchaToken) {
+      setErrorMessage('Selesaikan verifikasi keamanan terlebih dahulu');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -74,6 +79,8 @@ export default function DaftarAgenPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // Token Turnstile sekali pakai.
+        turnstileRef.current?.reset();
         if (res.status === 409) setNomorTerdaftar(true);
         setErrorMessage(data.error || 'Pendaftaran gagal, silakan coba lagi');
         setIsSubmitting(false);
@@ -83,6 +90,7 @@ export default function DaftarAgenPage() {
       await login(brandId, hp, pin);
       router.replace('/portal/syiar/kelengkapan-agen');
     } catch (err) {
+      turnstileRef.current?.reset();
       setErrorMessage(err.message || 'Pendaftaran gagal, silakan coba lagi');
       setIsSubmitting(false);
     }
@@ -183,6 +191,8 @@ export default function DaftarAgenPage() {
             </div>
             <p className="text-[11px] text-neutral-500 -mt-1">PIN dipakai untuk masuk ke Portal Jamaah.</p>
 
+            <Turnstile ref={turnstileRef} onToken={setCaptchaToken} action="daftar_agen" />
+
             {errorMessage && (
               <div className="text-xs text-danger-600 font-medium">
                 <p>{errorMessage}</p>
@@ -196,7 +206,7 @@ export default function DaftarAgenPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !captchaToken}
               className="w-full py-3 px-4 text-sm font-bold text-white bg-brand rounded-2xl hover:brightness-105 active:brightness-95 disabled:opacity-60 transition-all cursor-pointer"
             >
               {isSubmitting ? 'Memproses...' : 'Daftar & Lanjutkan'}

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getMe, listJamaahSaya, buatBookingAgen } from '@/lib/portalApi';
+import Turnstile from '@/components/ui/Turnstile';
 
 // Format Rupiah Helper
 const formatRp = (num) => {
@@ -149,7 +150,8 @@ export default function BookingWizard({
   const [picPinVerify, setPicPinVerify] = useState('');
   const [showPinVerify, setShowPinVerify] = useState(false);
   const [agree, setAgree] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState('demo-turnstile-token');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef(null);
 
   // UI States
   const [loading, setLoading] = useState(false);
@@ -712,7 +714,7 @@ export default function BookingWizard({
       const payload = {
         brand_id: schedule?.brand_id || brandId || 1,
         schedule_id: schedule?.id,
-        captcha_token: turnstileToken || 'demo-token',
+        captcha_token: agenMode ? '' : turnstileToken,
         pic: {
           nama_lengkap: picNama.trim(),
           no_hp: picPhone.replace(/\D/g, ''),
@@ -779,6 +781,8 @@ export default function BookingWizard({
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
+      // Token Turnstile sekali pakai: minta token baru untuk percobaan berikutnya.
+      turnstileRef.current?.reset();
       const msg = err.message || 'Gagal mengirim formulir booking. Silakan coba lagi.';
       if (
         msg.includes('nomor atau PIN tidak cocok') ||
@@ -2191,14 +2195,12 @@ export default function BookingWizard({
                   </span>
                 </label>
 
-                {/* Cloudflare Turnstile Badge */}
-                <div className="pt-2 flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-500">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Protected by Cloudflare Turnstile Verification</span>
+                {/* Cloudflare Turnstile (booking agen tidak butuh: endpoint sudah terautentikasi) */}
+                {!agenMode && (
+                  <div className="pt-2">
+                    <Turnstile ref={turnstileRef} onToken={setTurnstileToken} action="booking" />
                   </div>
-                  <span className="font-mono text-[10px] text-slate-400">Security Check Passed</span>
-                </div>
+                )}
               </div>
 
               {/* Sticky Bottom Action Bar */}
@@ -2213,7 +2215,7 @@ export default function BookingWizard({
                 <button
                   type="button"
                   onClick={handleSubmitBooking}
-                  disabled={loading || !agree}
+                  disabled={loading || !agree || (!agenMode && !turnstileToken)}
                   className="btn-brand-cta flex-1 h-[42px] rounded-xl font-bold text-white text-[12px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none"
                 >
                   <span>{loading ? 'Memproses Booking...' : 'Konfirmasi & Bayar DP'}</span>
