@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { clientIpHeaders } from '@/lib/forwardClientIp';
 
 export async function POST(request) {
   try {
@@ -8,6 +9,7 @@ export async function POST(request) {
     
     const forwardHeaders = {
       'Content-Type': 'application/json',
+      ...clientIpHeaders(request),
     };
     if (authHeader) {
       forwardHeaders['Authorization'] = authHeader;

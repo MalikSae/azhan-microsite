@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { clientIpHeaders } from '@/lib/forwardClientIp';
 
 export async function POST(request) {
   try {
@@ -9,6 +10,7 @@ export async function POST(request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...clientIpHeaders(request),
       },
       body: JSON.stringify(body),
     });
