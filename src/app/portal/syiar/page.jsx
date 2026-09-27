@@ -1,12 +1,21 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePortalAuth } from '@/context/PortalAuthContext';
+import { getAgenStatus } from '@/lib/portalApi';
+import { formatRupiah } from '@/lib/portalFormat';
+import Badge from '@/components/ui/Badge';
+import StatusPembayaranAgen from './StatusPembayaranAgen';
 
+// Portal Syiar — satu route, tampilan mengikuti status_agen (screen A1, A2, A3, A4).
 export default function PortalSyiarPage() {
   const router = useRouter();
   const { jamaah, isLoading } = usePortalAuth();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !jamaah) {
@@ -14,7 +23,14 @@ export default function PortalSyiarPage() {
     }
   }, [isLoading, jamaah, router]);
 
-  if (isLoading || !jamaah) {
+  useEffect(() => {
+    if (!jamaah) return;
+    getAgenStatus()
+      .then(setData)
+      .catch((err) => setError(err.message));
+  }, [jamaah]);
+
+  if (isLoading || !jamaah || (!data && !error)) {
     return (
       <div className="flex-1 flex items-center justify-center p-6 text-sm text-neutral-500 font-medium">
         Memuat...
@@ -22,16 +38,134 @@ export default function PortalSyiarPage() {
     );
   }
 
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3">
-      <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500">
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.3404 15.8398C9.65153 15.7803 8.95431 15.75 8.25 15.75H7.5C5.01472 15.75 3 13.7353 3 11.25C3 8.76472 5.01472 6.75 7.5 6.75H8.25C8.95431 6.75 9.65153 6.71966 10.3404 6.66022M10.3404 15.8398C10.5933 16.8015 10.9237 17.7317 11.3246 18.6234C11.5721 19.1738 11.3842 19.8328 10.8616 20.1345L10.2053 20.5134C9.6539 20.8318 8.9456 20.6306 8.67841 20.0527C8.0518 18.6973 7.56541 17.2639 7.23786 15.771M10.3404 15.8398C9.95517 14.3745 9.75 12.8362 9.75 11.25C9.75 9.66379 9.95518 8.1255 10.3404 6.66022M10.3404 15.8398C13.5 16.1124 16.4845 16.9972 19.1747 18.3749M10.3404 6.66022C13.5 6.3876 16.4845 5.50283 19.1747 4.12509M19.1747 4.12509C19.057 3.74595 18.9302 3.37083 18.7944 3M19.1747 4.12509C19.7097 5.84827 20.0557 7.65462 20.1886 9.51991M19.1747 18.3749C19.057 18.7541 18.9302 19.1292 18.7944 19.5M19.1747 18.3749C19.7097 16.6517 20.0557 14.8454 20.1886 12.9801M20.1886 9.51991C20.6844 9.93264 21 10.5545 21 11.25C21 11.9455 20.6844 12.5674 20.1886 12.9801M20.1886 9.51991C20.2293 10.0913 20.25 10.6682 20.25 11.25C20.25 11.8318 20.2293 12.4087 20.1886 12.9801" />
-        </svg>
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <p className="text-sm text-danger-700 text-center">{error}</p>
       </div>
-      <p className="text-sm text-neutral-600 max-w-xs leading-relaxed">
-        Fitur Syiar sedang dipersiapkan. Nantikan kabar selanjutnya.
-      </p>
+    );
+  }
+
+  const bayar = data.pembayaran;
+  const pembayaranBelumBeres =
+    bayar && bayar.keputusan_agen !== 'ditolak' && bayar.status !== 'terverifikasi' && bayar.nominal_tagihan > 0;
+
+  return (
+    <div className="flex-1 flex flex-col p-4 space-y-3.5">
+      <div className="pb-1">
+        <h1 className="text-base sm:text-lg font-bold text-neutral-900">Syiar</h1>
+        <p className="text-xs sm:text-sm text-neutral-500">Program Agen Umroh {data.brand_name}</p>
+      </div>
+
+      {data.status_agen === 'tidak_aktif' && (
+        <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-4 sm:p-5 space-y-4">
+          <div className="space-y-1.5">
+            <h2 className="text-sm sm:text-base font-bold text-neutral-900">Ajak keluarga & kerabat berangkat umroh</h2>
+            <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
+              Jadi Agen Syiar dan dapatkan komisi untuk setiap jamaah yang Anda ajak, setelah pembayaran paketnya lunas.
+            </p>
+          </div>
+          <ul className="space-y-2 text-xs sm:text-sm text-neutral-700">
+            <li className="flex gap-2"><span className="text-brand font-bold">•</span>Komisi langsung per jamaah yang Anda ajak</li>
+            <li className="flex gap-2"><span className="text-brand font-bold">•</span>Bonus pembinaan dari agen yang Anda rekrut</li>
+            <li className="flex gap-2"><span className="text-brand font-bold">•</span>Komisi repeat order saat jamaah Anda berangkat lagi</li>
+          </ul>
+          <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80 text-xs sm:text-sm text-neutral-700">
+            {data.biaya_pendaftaran_agen > 0 ? (
+              <>Biaya pendaftaran agen: <strong className="font-mono">{formatRupiah(data.biaya_pendaftaran_agen)}</strong></>
+            ) : (
+              <>Tanpa biaya pendaftaran.</>
+            )}
+          </div>
+          <Link
+            href="/portal/syiar/kelengkapan-agen"
+            className="block w-full py-2.5 px-4 rounded-xl bg-brand text-white text-sm font-bold text-center shadow-xs hover:opacity-95 transition-all"
+          >
+            Ajukan jadi Agen
+          </Link>
+        </div>
+      )}
+
+      {data.status_agen === 'pengajuan' && (
+        <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-4 sm:p-5 space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <h2 className="text-sm sm:text-base font-bold text-neutral-900">Pengajuan sedang diproses</h2>
+              <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
+                Admin {data.brand_name} akan meninjau data Anda. Kami akan mengabari Anda setelah pengajuan disetujui.
+              </p>
+            </div>
+            <Badge variant="pending">Menunggu</Badge>
+          </div>
+          {bayar && bayar.nominal_tagihan > 0 && <StatusPembayaranAgen pembayaran={bayar} />}
+          {pembayaranBelumBeres && (
+            <Link
+              href="/portal/syiar/pembayaran-agen"
+              className="block w-full py-2.5 px-4 rounded-xl border border-neutral-300 bg-white text-neutral-800 text-sm font-semibold text-center hover:bg-neutral-50 transition-all"
+            >
+              {bayar.status === 'ditolak' ? 'Kirim Ulang Bukti Transfer' : 'Kelola Pembayaran Pendaftaran'}
+            </Link>
+          )}
+        </div>
+      )}
+
+      {data.status_agen === 'aktif' && (
+        <div className="space-y-3">
+          <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-4 sm:p-5 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm sm:text-base font-bold text-neutral-900">Anda Agen Syiar aktif</h2>
+              <Badge variant="success">Aktif</Badge>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Kode referral</span>
+              <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-neutral-50 border border-neutral-200/80">
+                <span className="font-mono font-bold text-base sm:text-lg text-neutral-900 tracking-widest">{data.kode_referral}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = `${window.location.origin}/?ref=${data.kode_referral}`;
+                    navigator.clipboard?.writeText(link);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2500);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold shrink-0 cursor-pointer"
+                >
+                  {copied ? 'Link tersalin!' : 'Salin link'}
+                </button>
+              </div>
+              <p className="text-[11px] sm:text-xs text-neutral-500">
+                Bagikan link Anda. Jamaah yang mendaftar lewat link ini tercatat sebagai jamaah Anda.
+              </p>
+            </div>
+            <p className="text-xs text-neutral-500 border-t border-neutral-100 pt-3">
+              Dashboard komisi, riwayat, dan pencairan saldo segera hadir di halaman ini.
+            </p>
+          </div>
+          {pembayaranBelumBeres && (
+            <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-4 space-y-3">
+              <StatusPembayaranAgen pembayaran={bayar} />
+              <Link
+                href="/portal/syiar/pembayaran-agen"
+                className="block w-full py-2 px-4 rounded-xl border border-neutral-300 bg-white text-neutral-800 text-xs sm:text-sm font-semibold text-center hover:bg-neutral-50"
+              >
+                {bayar.status === 'ditolak' ? 'Kirim Ulang Bukti Transfer' : 'Kelola Pembayaran Pendaftaran'}
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
+      {data.status_agen === 'nonaktif' && (
+        <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-4 sm:p-5 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm sm:text-base font-bold text-neutral-900">Akun agen dinonaktifkan</h2>
+            <Badge variant="danger">Nonaktif</Badge>
+          </div>
+          <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
+            Selama nonaktif, fitur agen dan komisi tidak tersedia. Hubungi admin {data.brand_name} untuk informasi lebih lanjut.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -100,6 +100,37 @@ export async function submitPaymentConfirmation(bookingId, payload) {
   return data;
 }
 
+// ─── Agen Syiar ──────────────────────────────────────────────────────────────
+
+export async function getAgenStatus() {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal memuat status Syiar');
+  return data;
+}
+
+export async function ajukanAgen(payload) {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen/pengajuan`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Pengajuan agen gagal dikirim');
+  return data;
+}
+
+export async function kirimBuktiPendaftaranAgen(buktiTransferUrl) {
+  const res = await fetch(`${API_BASE_URL}/api/portal/agen/pembayaran/bukti`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ bukti_transfer_url: buktiTransferUrl }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Bukti transfer gagal dikirim');
+  return data;
+}
+
 export async function listMyDokumen() {
   const res = await fetch(`${API_BASE_URL}/api/portal/dokumen`, {
     headers: authHeaders(),
