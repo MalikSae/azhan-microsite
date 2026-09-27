@@ -83,8 +83,8 @@ const navItems = [
 export default function PortalShell({ children }) {
   const pathname = usePathname() || '';
 
-  // Auth pages (login & aktivasi) render children directly without shell/nav
-  if (pathname === '/portal/login' || pathname === '/portal/aktivasi') {
+  // Auth pages (login, aktivasi, daftar agen) render children directly without shell/nav
+  if (pathname === '/portal/login' || pathname === '/portal/aktivasi' || pathname === '/portal/daftar-agen') {
     return <>{children}</>;
   }
 

@@ -1,4 +1,20 @@
 import { NextResponse } from 'next/server';
+import { REFERRAL_COOKIE, REFERRAL_MAX_AGE, normalizeKodeReferral } from '@/lib/referral';
+
+// Link agen Syiar (?ref=KODE) disimpan 90 hari; klik link baru selalu
+// menimpa (last-click wins). Cookie per domain, jadi otomatis per brand.
+// Validitas kode (agen aktif di brand ini) dicek backend saat dipakai.
+function captureReferral(request, response) {
+  const kode = normalizeKodeReferral(request.nextUrl.searchParams.get('ref'));
+  if (!kode) return;
+  response.cookies.set(REFERRAL_COOKIE, kode, {
+    maxAge: REFERRAL_MAX_AGE,
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: request.nextUrl.protocol === 'https:',
+  });
+}
 
 export async function middleware(request) {
   // 1. Get hostname without port from Host / X-Forwarded-Host header
@@ -55,11 +71,13 @@ export async function middleware(request) {
       requestHeaders.set('x-brand-socials', JSON.stringify(brand.social_media));
     }
 
-    return NextResponse.next({
+    const response = NextResponse.next({
       request: {
         headers: requestHeaders,
       },
     });
+    captureReferral(request, response);
+    return response;
   } catch (error) {
     // 4. Network error / unexpected error -> rewrite to /brand-not-found
     console.error('Middleware fetch brand error:', error);

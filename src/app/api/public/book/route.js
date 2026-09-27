@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { clientIpHeaders } from '@/lib/forwardClientIp';
+import { kodeReferralFromRequest } from '@/lib/referral';
 
 export async function POST(request) {
   try {
     const body = await request.json();
+    // Kode referral hanya dari cookie link agen, nilai dari browser diabaikan.
+    body.kode_referral = kodeReferralFromRequest(request);
     const authHeader = request.headers.get('authorization');
     const baseUrl = process.env.API_BASE_URL_INTERNAL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
     
