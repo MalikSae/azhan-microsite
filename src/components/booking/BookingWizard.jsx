@@ -1,4 +1,8 @@
 'use client';
+import { packagePricing, scheduleBelongsToBrand } from '@/lib/packagePolicy.mjs';
+import { TERMS_VERSION, paymentTerms, validPhone, validInfant } from '@/lib/checkoutPolicy.mjs';
+import useDialogFocus from '@/components/ui/useDialogFocus';
+import useBookingAccessibility from './useBookingAccessibility';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -25,83 +29,19 @@ const formatDate = (dateStr) => {
 };
 
 // Custom Select Component for Clean UI
-function CustomSelect({ value, onChange, options: customOptions, placeholder = 'Pilih Jenis Kelamin' }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const defaultOptions = [
-    { value: 'L', label: 'Laki-laki' },
-    { value: 'P', label: 'Perempuan' },
-  ];
-
-  const options = customOptions || defaultOptions;
-  const selectedOpt = options.find((o) => o.value === value);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white flex items-center justify-between cursor-pointer text-left"
-      >
-        <span className={selectedOpt ? 'text-neutral-900 font-medium' : 'text-neutral-400'}>
-          {selectedOpt ? selectedOpt.label : placeholder}
-        </span>
-        <svg
-          className={`w-4 h-4 text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-neutral-100 z-50 py-1 text-xs sm:text-sm overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-              className={`w-full px-4 py-2.5 text-left flex items-center justify-between hover:bg-neutral-50 transition-colors cursor-pointer ${
-                value === opt.value ? 'bg-amber-50/60 font-semibold text-neutral-900' : 'text-neutral-700'
-              }`}
-            >
-              <span>{opt.label}</span>
-              {value === opt.value && (
-                <svg className="w-4 h-4 text-emerald-600 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function CustomSelect({ value, onChange, options, placeholder = 'Pilih Jenis Kelamin' }) {
+  return <select value={value} onChange={e => onChange(e.target.value)} className="w-full min-h-11 px-3.5 py-2.5 text-sm rounded-lg input-brand bg-white">
+    <option value="">{placeholder}</option>
+    {(options || [{value:'L',label:'Laki-laki'},{value:'P',label:'Perempuan'}]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+  </select>;
 }
-
 export default function BookingWizard({
   schedule,
   brandName,
   brandColor,
   brandId,
   brandWhatsapp = '',
-  brandPpiu = 'No. 484/2020',
+  brandPpiu = '',
   brandLegal = '',
   initialRoom = 'quad',
   initialBankAccounts = [],
@@ -109,11 +49,16 @@ export default function BookingWizard({
   // Mode agen (Jalur 1, screen A5): agen login membuat booking untuk
   // jamaahnya. Agen bukan PIC; tanpa cek nomor dan PIN; pax bisa dipilih
   // dari "Jamaah Saya" (repeat order). Dikirim ke /api/portal/agen/bookings.
-  agenMode = false
+  agenMode = false,
+  draftOwnerId = null,
+  onQuoteChanged = null
 }) {
   const router = useRouter();
   // Active step: 1 (Kamar), 2 (Data Jamaah), 3 (Konfirmasi), 4 (Pembayaran)
   const [step, setStep] = useState(1);
+  const formRef = useBookingAccessibility(step);
+  const requestKey = useRef(null);
+  const phoneRequest = useRef(0);
 
   // Room Counts - diinisialisasi dari query param room
   const [counts, setCounts] = useState(() => {
@@ -164,6 +109,41 @@ export default function BookingWizard({
 
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [draftAvailable, setDraftAvailable] = useState(false);
+  const draftKey = `booking_draft_${brandId}_${schedule?.id}`;
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem(`booking_result_${schedule?.id}`);
+      const saved = JSON.parse(sessionStorage.getItem(draftKey) || 'null');
+      if (saved?.expires > Date.now()) setDraftAvailable(true);
+      else sessionStorage.removeItem(draftKey);
+    } catch {}
+  }, [draftKey, schedule?.id]);
+  const saveDraft = () => {
+    try {
+      const fields = { counts, picNama, picGender, picPhone, picEmail, picRoomType, picSlotIndex, jamaahQuad, jamaahTriple, jamaahDouble, jamaahInfant, picJamaahId };
+      sessionStorage.setItem(draftKey, JSON.stringify({ expires: Date.now() + 30 * 60 * 1000, fields, mode: agenMode, owner: draftOwnerId || loggedInUser?.id || null }));
+      setDraftAvailable(true); setAlertMsg('Draf tersimpan selama 30 menit di tab ini. PIN tidak disimpan.');
+    } catch { setAlertMsg('Perangkat tidak mengizinkan penyimpanan draf. Formulir tetap dapat digunakan.'); }
+  };
+  const restoreDraft = () => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(draftKey) || 'null');
+      if (!saved || saved.expires <= Date.now() || saved.mode !== agenMode || saved.owner !== (draftOwnerId || loggedInUser?.id || null)) { sessionStorage.removeItem(draftKey); setDraftAvailable(false); setAlertMsg('Draf kedaluwarsa atau berasal dari pemesan berbeda.'); return; }
+      const f = saved.fields;
+      setCounts(f.counts); setPicNama(f.picNama); setPicGender(f.picGender); setPicPhone(f.picPhone); setPicEmail(f.picEmail); setPicRoomType(f.picRoomType); setPicSlotIndex(f.picSlotIndex);
+      setJamaahQuad(f.jamaahQuad); setJamaahTriple(f.jamaahTriple); setJamaahDouble(f.jamaahDouble); setJamaahInfant(f.jamaahInfant); setPicJamaahId(f.picJamaahId);
+      setPhoneCheckStatus(loggedInUser ? 'logged_in' : 'idle'); setAgree(false); setStep(1);
+    } catch { setAlertMsg('Draf tidak dapat dipulihkan.'); }
+  };
+  const alertRef = useDialogFocus(Boolean(alertMsg));
+  const swapRef = useDialogFocus(Boolean(pendingRoomSwap));
+  const logoutRef = useDialogFocus(showLogoutModal);
+  useEffect(() => {
+    const close = e => { if (e.key === 'Escape') { setAlertMsg(''); setPendingRoomSwap(null); setShowLogoutModal(false); } };
+    document.addEventListener('keydown', close);
+    return () => document.removeEventListener('keydown', close);
+  }, []);
 
   // Mode agen: daftar jamaah milik agen + jamaah terpilih sebagai PIC.
   const [jamaahSaya, setJamaahSaya] = useState([]);
@@ -226,37 +206,6 @@ export default function BookingWizard({
     return pilihJamaahSaya((j) => set({ jamaah_id: j.id, nama: j.nama_lengkap, jenis_kelamin: j.jenis_kelamin || 'L', no_hp: '' }));
   };
 
-  // Restore Step 4 state from sessionStorage on mount / refresh
-  useEffect(() => {
-    // Mode agen tidak memulihkan hasil booking publik dari sesi browser.
-    if (agenMode) return;
-    try {
-      const storageKey = `booking_result_${schedule?.id}`;
-      const savedResult = sessionStorage.getItem(storageKey);
-      const urlParams = new URLSearchParams(window.location.search);
-      if (savedResult || urlParams.get('step') === 'success' || urlParams.get('code')) {
-        let parsed = null;
-        if (savedResult) {
-          parsed = JSON.parse(savedResult);
-        } else if (urlParams.get('code')) {
-          // Fallback dummy for direct test preview
-          parsed = {
-            kode_booking: urlParams.get('code'),
-            total_harga: (schedule?.harga_double || 33999000) * 2 + (schedule?.harga_infant || 12000000),
-            nominal_dp: (schedule?.minimal_dp || 5000000) * 2,
-            bank_accounts: activeAccounts,
-          };
-        }
-        if (parsed && parsed.kode_booking) {
-          setBookingResult(parsed);
-          setStep(4);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to restore booking state:', e);
-    }
-  }, [schedule?.id, schedule?.harga_double, schedule?.harga_infant, schedule?.minimal_dp, initialBankAccounts, travelAccounts, agenMode]);
-
   // Auto-detect Portal Jamaah login session
   useEffect(() => {
     const checkAuth = async () => {
@@ -299,7 +248,10 @@ export default function BookingWizard({
   const handleLogoutAuth = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('portal_access_token');
+      sessionStorage.removeItem(`booking_draft_${brandId}_${schedule?.id}`);
+      sessionStorage.removeItem(`booking_result_${schedule?.id}`);
     }
+    requestKey.current = null;
     setLoggedInUser(null);
     setPicNama('');
     setPicPhone('');
@@ -321,11 +273,13 @@ export default function BookingWizard({
 
   // Room Prices from Schedule
   const priceQuad = schedule?.harga_quad || 0;
-  const priceTriple = schedule?.harga_triple || (priceQuad > 0 ? priceQuad + 2000000 : 0);
-  const priceDouble = schedule?.harga_double || (priceQuad > 0 ? priceQuad + 5000000 : 0);
-  const priceInfant = schedule?.harga_infant || 12000000;
-  const dpPerPax = schedule?.dp_amount || 5000000;
-  const seatSisa = schedule?.seat_sisa !== undefined ? schedule.seat_sisa : 10;
+  const priceTriple = schedule?.harga_triple ?? 0;
+  const priceDouble = schedule?.harga_double ?? 0;
+  const { infantAvailable, infantPrice: priceInfant, dp: effectiveDP } = packagePricing(schedule);
+  const dpPerPax = effectiveDP ?? 0;
+  const pricingReady = effectiveDP !== null && effectiveDP >= 0 && effectiveDP <= Math.min(priceQuad, priceTriple, priceDouble);
+  const brandMatches = scheduleBelongsToBrand(schedule, brandId);
+  const seatSisa = schedule?.seat_sisa ?? 0;
 
   // Total Calculations
   const totalReguler = counts.quad + counts.triple + counts.double;
@@ -335,7 +289,7 @@ export default function BookingWizard({
     counts.triple * priceTriple +
     counts.double * priceDouble +
     counts.infant * priceInfant;
-  const totalDp = totalReguler * dpPerPax;
+  const { minimum: totalDp, fullPayment } = paymentTerms(schedule, totalReguler, totalPrice);
 
   const durationDays = useMemo(() => {
     if (!schedule?.berangkat_tanggal || !schedule?.pulang_tanggal) return 0;
@@ -352,6 +306,7 @@ export default function BookingWizard({
 
   // Update room count safely
   const updateCount = (type, delta) => {
+    if (type === 'infant' && !infantAvailable && delta > 0) return;
     setCounts((prev) => {
       const current = prev[type];
       const next = current + delta;
@@ -449,14 +404,16 @@ export default function BookingWizard({
   // Check WhatsApp phone registration status
   const checkPhone = async (phone) => {
     const clean = (phone || '').replace(/\D/g, '');
-    if (clean.length < 10) {
+    if (clean === lastCheckedPhone && ['baru','perlu_pin','tanpa_pin'].includes(phoneCheckStatus)) return;
+    const sequence = ++phoneRequest.current;
+    if (!validPhone(clean)) {
       setPhoneCheckStatus('idle');
       return;
     }
 
     setPhoneCheckStatus('checking');
     try {
-      const targetBrandId = schedule?.brand_id || brandId || 1;
+      const targetBrandId = Number(brandId);
       const res = await fetch('/api/public/jamaah/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -465,11 +422,12 @@ export default function BookingWizard({
           no_hp: clean,
         }),
       });
+      if (sequence !== phoneRequest.current) return;
 
       if (!res.ok) {
         setPhoneCheckStatus('error');
-        setLastCheckedPhone(clean);
-        showAlert('Gagal memeriksa nomor, coba lagi sebentar lagi.');
+        const error = await res.json().catch(() => ({}));
+        showAlert(error.error || 'Gagal memeriksa nomor, coba lagi sebentar lagi.');
         return;
       }
 
@@ -477,6 +435,7 @@ export default function BookingWizard({
       setPhoneCheckStatus(data.status || 'error');
       setLastCheckedPhone(clean);
     } catch (err) {
+      if (sequence !== phoneRequest.current) return;
       setPhoneCheckStatus('error');
       setLastCheckedPhone(clean);
       showAlert('Gagal memeriksa nomor, coba lagi sebentar lagi.');
@@ -485,6 +444,7 @@ export default function BookingWizard({
 
   // Navigation: Step 1 -> Step 2
   const goToStep2 = () => {
+    if (!pricingReady || !brandMatches) { showAlert('Paket atau konfigurasi harga tidak tersedia. Muat ulang halaman atau hubungi admin.'); return; }
     if (totalReguler <= 0) {
       showAlert('Pilih minimal 1 jamaah reguler untuk melanjutkan.');
       return;
@@ -529,6 +489,8 @@ export default function BookingWizard({
 
   // Navigation: Step 2 -> Step 3
   const goToStep3 = () => {
+    const invalid = formRef.current?.querySelector('input:invalid,select:invalid');
+    if (invalid) { invalid.reportValidity(); invalid.focus(); return; }
     if (!picRoomType) {
       showAlert('Pilih tipe kamar untuk Jamaah Utama.');
       return;
@@ -542,10 +504,12 @@ export default function BookingWizard({
       return;
     }
     const cleanPhone = picPhone.replace(/\D/g, '');
-    if (!(agenMode && picJamaahId) && cleanPhone.length < 9) {
-      showAlert('Nomor WhatsApp Pemesan tidak valid (minimal 9 digit).');
+    if (!(agenMode && picJamaahId) && !validPhone(cleanPhone)) {
+      showAlert('Nomor WhatsApp Pemesan harus 10–15 digit.');
       return;
     }
+    if (!agenMode && phoneCheckStatus === 'baru' && (!/^\d{6}$/.test(picPin) || picPin !== picPinConfirm)) { showAlert('Isi PIN 6 digit angka dan konfirmasi yang sama.'); return; }
+    if (!agenMode && phoneCheckStatus === 'perlu_pin' && !/^\d{6}$/.test(picPinVerify)) { showAlert('PIN portal harus 6 digit angka.'); return; }
 
     // Validasi Jamaah Quad
     for (let i = 0; i < counts.quad; i++) {
@@ -612,7 +576,7 @@ export default function BookingWizard({
       }
       const bDate = new Date(inf.tanggal_lahir);
       const ageDiff = (departureDate - bDate) / (1000 * 60 * 60 * 24 * 365.25);
-      if (ageDiff >= 2.0) {
+      if (!validInfant(inf.tanggal_lahir, schedule.berangkat_tanggal)) {
         showAlert(`Usia Bayi ${inf.nama.trim()} mencapai 2 tahun atau lebih saat keberangkatan.`);
         return;
       }
@@ -624,6 +588,7 @@ export default function BookingWizard({
 
   // Submit Booking (Step 3 -> Step 4)
   const handleSubmitBooking = async () => {
+    if (loading) return;
     if (agenMode) {
       // Booking agen: tanpa PIN; jamaah baru mengaktifkan akun portalnya sendiri.
     } else if (phoneCheckStatus === 'baru') {
@@ -712,7 +677,11 @@ export default function BookingWizard({
       }
 
       const payload = {
-        brand_id: schedule?.brand_id || brandId || 1,
+        terms_version: TERMS_VERSION,
+        terms_accepted: agree,
+        expected_total: totalPrice,
+        expected_dp: totalDp,
+        brand_id: Number(brandId),
         schedule_id: schedule?.id,
         captcha_token: agenMode ? '' : turnstileToken,
         pic: {
@@ -726,6 +695,8 @@ export default function BookingWizard({
         },
         anggota: anggota,
       };
+      if (!requestKey.current) requestKey.current = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, '0')).join('');
+      payload.request_key = requestKey.current;
 
       let data;
       if (agenMode) {
@@ -753,7 +724,7 @@ export default function BookingWizard({
       }
 
       if (!agenMode && data.portal_token && typeof window !== 'undefined') {
-        localStorage.setItem('portal_access_token', data.portal_token);
+        try { localStorage.setItem('portal_access_token', data.portal_token); } catch {}
       }
 
       const resultData = {
@@ -763,19 +734,19 @@ export default function BookingWizard({
         portal_token: data.portal_token,
         bank_accounts: data.bank_accounts,
         pic_phone: picPhone.replace(/\D/g, ''),
+        invoice_token: data.booking?.invoice_token,
       };
 
-      if (!agenMode) try {
+      try {
         const storageKey = `booking_result_${schedule?.id}`;
-        sessionStorage.setItem(storageKey, JSON.stringify(resultData));
-        const newUrl = `${window.location.pathname}?step=success&code=${data.booking?.booking_code}`;
-        window.history.replaceState(null, '', newUrl);
+        sessionStorage.removeItem(storageKey);
+        sessionStorage.removeItem(`booking_draft_${brandId}_${schedule?.id}`);
       } catch (e) {}
 
       setBookingResult(resultData);
       // Redirect ke Digital Invoice URL permanen
-      if (data.booking?.booking_code) {
-        router.push(`/invoice/${data.booking.booking_code}`);
+      if (data.booking?.invoice_token) {
+        router.push(`/invoice/${data.booking.invoice_token}`);
       } else {
         setStep(4);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -784,6 +755,13 @@ export default function BookingWizard({
       // Token Turnstile sekali pakai: minta token baru untuk percobaan berikutnya.
       turnstileRef.current?.reset();
       const msg = err.message || 'Gagal mengirim formulir booking. Silakan coba lagi.';
+      if (msg.includes('kunci pemesanan')) requestKey.current = null;
+      if (msg.includes('harga atau DP berubah')) {
+        setAgree(false);
+        requestKey.current = null;
+        if (onQuoteChanged) await onQuoteChanged();
+        else router.refresh();
+      }
       if (
         msg.includes('nomor atau PIN tidak cocok') ||
         msg.includes('nomor tidak dapat digunakan') ||
@@ -849,11 +827,18 @@ export default function BookingWizard({
   }
 
   return (
-    <div className="space-y-6 pb-20 sm:pb-0" style={{ '--brand-primary': activeColor }}>
+    <div ref={formRef} className="space-y-6 pb-20 sm:pb-0" style={{ '--brand-primary': activeColor }}>
+      <h2 data-step-heading tabIndex={-1} className="text-base font-bold">Langkah {step}: {['','Pilih kamar','Data jamaah','Periksa dan setujui','Hasil pemesanan'][step]}</h2>
+      <p className="text-sm text-neutral-600">{fullPayment ? 'Keberangkatan dalam 45 hari: pelunasan penuh diperlukan dalam 24 jam.' : 'Reservasi awal 24 jam. DP nol berarti tanpa minimum nominal, bukan biaya perjalanan gratis.'}</p>
+      {step < 4 && <div className="flex flex-wrap gap-2 text-sm">
+        <button type="button" className="min-h-11 px-3 rounded-lg border" onClick={saveDraft}>Simpan draf 30 menit</button>
+        {draftAvailable && <><button type="button" className="min-h-11 px-3 rounded-lg border" onClick={restoreDraft}>Pulihkan draf</button><button type="button" className="min-h-11 px-3 rounded-lg border" onClick={() => { try { sessionStorage.removeItem(draftKey); } catch {} setDraftAvailable(false); }}>Hapus draf</button></>}
+      </div>}
+      {(agenMode || phoneCheckStatus === 'tanpa_pin') && <p className="text-sm p-3 bg-amber-50 rounded-lg">PIC belum memiliki PIN? Setelah booking, hubungi admin untuk melengkapi tanggal lahir dan memperoleh link aktivasi. Bukti transfer dapat disampaikan melalui kontak resmi travel.</p>}
       {/* Alert Modal */}
       {alertMsg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-neutral-200 text-center space-y-4">
+          <div ref={alertRef} role="alertdialog" aria-modal="true" aria-label="Periksa formulir" tabIndex={-1} className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-neutral-200 text-center space-y-4">
             <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
               <svg className="w-6 h-6 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -876,7 +861,7 @@ export default function BookingWizard({
       {/* Confirm Room Swap Modal */}
       {pendingRoomSwap && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-neutral-200 text-center space-y-4">
+          <div ref={swapRef} role="dialog" aria-modal="true" aria-label="Konfirmasi ganti kamar" tabIndex={-1} className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-neutral-200 text-center space-y-4">
             <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
               <svg className="w-6 h-6 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -908,7 +893,7 @@ export default function BookingWizard({
       {/* Confirm Logout Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-neutral-200 text-center space-y-4 animate-in zoom-in-95 duration-150">
+          <div ref={logoutRef} role="dialog" aria-modal="true" aria-label="Konfirmasi keluar" tabIndex={-1} className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-neutral-200 text-center space-y-4 animate-in zoom-in-95 duration-150">
             <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
               <svg className="w-6 h-6 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -1071,10 +1056,10 @@ export default function BookingWizard({
               {/* Trust Badges */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-neutral-200/70">
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
-                  Izin PPIU {brandPpiu}
+                  {brandPpiu ? `Izin PPIU ${brandPpiu}` : 'Informasi izin: hubungi admin'}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
-                  100% Pasti Berangkat
+                  {schedule?.is_ticket_confirmed ? 'Tiket Dikonfirmasi' : 'Tiket Belum Dikonfirmasi'}
                 </span>
               </div>
             </div>
@@ -1116,8 +1101,9 @@ export default function BookingWizard({
                       <button
                         type="button"
                         onClick={() => updateCount('quad', -1)}
+                      aria-label="Kurangi jamaah Quad"
                         disabled={counts.quad <= 0}
-                        className="w-8 h-8 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                        className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                       >
                         -
                       </button>
@@ -1125,7 +1111,9 @@ export default function BookingWizard({
                       <button
                         type="button"
                         onClick={() => updateCount('quad', 1)}
-                        className="w-8 h-8 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
+                      aria-label="Tambah jamaah Quad"
+                      disabled={totalReguler >= seatSisa}
+                        className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
                       >
                         +
                       </button>
@@ -1153,8 +1141,9 @@ export default function BookingWizard({
                     <button
                       type="button"
                       onClick={() => updateCount('triple', -1)}
+                      aria-label="Kurangi jamaah Triple"
                       disabled={counts.triple <= 0}
-                      className="w-8 h-8 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
                       -
                     </button>
@@ -1162,7 +1151,9 @@ export default function BookingWizard({
                     <button
                       type="button"
                       onClick={() => updateCount('triple', 1)}
-                      className="w-8 h-8 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
+                      aria-label="Tambah jamaah Triple"
+                      disabled={totalReguler >= seatSisa}
+                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
                     >
                       +
                     </button>
@@ -1189,8 +1180,9 @@ export default function BookingWizard({
                     <button
                       type="button"
                       onClick={() => updateCount('double', -1)}
+                      aria-label="Kurangi jamaah Double"
                       disabled={counts.double <= 0}
-                      className="w-8 h-8 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
                       -
                     </button>
@@ -1198,7 +1190,9 @@ export default function BookingWizard({
                     <button
                       type="button"
                       onClick={() => updateCount('double', 1)}
-                      className="w-8 h-8 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
+                      aria-label="Tambah jamaah Double"
+                      disabled={totalReguler >= seatSisa}
+                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
                     >
                       +
                     </button>
@@ -1217,7 +1211,7 @@ export default function BookingWizard({
                       <span className="text-xs text-neutral-400 font-normal">(Bayi &lt; 2 Tahun)</span>
                     </div>
                     <div className="text-sm font-bold text-neutral-900 mt-0.5">
-                      {formatRp(priceInfant)}
+                      {infantAvailable ? formatRp(priceInfant) : 'Belum tersedia - hubungi admin'}
                     </div>
                   </div>
 
@@ -1225,8 +1219,9 @@ export default function BookingWizard({
                     <button
                       type="button"
                       onClick={() => updateCount('infant', -1)}
+                      aria-label="Kurangi jamaah Infant"
                       disabled={counts.infant <= 0}
-                      className="w-8 h-8 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
                       -
                     </button>
@@ -1234,7 +1229,9 @@ export default function BookingWizard({
                     <button
                       type="button"
                       onClick={() => updateCount('infant', 1)}
-                      className="w-8 h-8 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
+                      aria-label="Tambah jamaah Infant"
+                      disabled={!infantAvailable}
+                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
                     >
                       +
                     </button>
@@ -1242,6 +1239,7 @@ export default function BookingWizard({
                 </div>
               </div>
 
+              {(!pricingReady || !brandMatches || seatSisa <= 0) && <p role="alert" className="p-3 text-danger-700">{seatSisa <= 0 ? 'Kuota paket penuh. Hubungi admin untuk alternatif.' : 'Konfigurasi paket belum tersedia. Muat ulang atau hubungi admin.'}</p>}
               {/* Sticky Bottom Action Bar */}
               <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white/95 backdrop-blur-md border-t border-x border-[#DDE2EC] px-4 py-3 shadow-lg flex items-center justify-between gap-3">
                 <div className="flex flex-col min-w-0">
@@ -1265,7 +1263,7 @@ export default function BookingWizard({
                 <button
                   type="button"
                   onClick={goToStep2}
-                  disabled={totalReguler <= 0}
+                  disabled={totalReguler <= 0 || totalReguler > seatSisa || !pricingReady || !brandMatches}
                   className="h-[42px] px-5 flex items-center justify-center gap-1.5 rounded-xl bg-brand text-white hover:brightness-110 active:scale-95 transition-all text-[12px] font-bold shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0 cursor-pointer"
                 >
                   <span>Isi Data Jamaah</span>
@@ -1396,6 +1394,7 @@ export default function BookingWizard({
                         if (loggedInUser) return;
                         const val = e.target.value.replace(/\D/g, '');
                         setPicPhone(val);
+                        phoneRequest.current++;
                         if (val !== lastCheckedPhone) {
                           setPhoneCheckStatus('idle');
                         }
@@ -1487,6 +1486,7 @@ export default function BookingWizard({
                           <button
                             type="button"
                             onClick={() => setShowPin(!showPin)}
+                            aria-label={showPin ? 'Sembunyikan PIN' : 'Tampilkan PIN'}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
                           >
                             {showPin ? (
@@ -1533,6 +1533,7 @@ export default function BookingWizard({
                                 <button
                                   type="button"
                                   onClick={() => setShowPinConfirm(!showPinConfirm)}
+                                  aria-label={showPinConfirm ? 'Sembunyikan konfirmasi PIN' : 'Tampilkan konfirmasi PIN'}
                                   className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
                                 >
                                   {showPinConfirm ? (
@@ -1590,6 +1591,7 @@ export default function BookingWizard({
                         <button
                           type="button"
                           onClick={() => setShowPinVerify(!showPinVerify)}
+                          aria-label={showPinVerify ? 'Sembunyikan PIN' : 'Tampilkan PIN'}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
                         >
                           {showPinVerify ? (
@@ -1980,7 +1982,7 @@ export default function BookingWizard({
                         const bDate = new Date(birthDateVal);
                         if (!isNaN(bDate.getTime())) {
                           const ageDiffYears = (depDate - bDate) / (1000 * 60 * 60 * 24 * 365.25);
-                          if (ageDiffYears >= 2.0) {
+                          if (!validInfant(birthDateVal, schedule.berangkat_tanggal)) {
                             isOverAge = true;
                           }
                         }
@@ -2188,7 +2190,7 @@ export default function BookingWizard({
                   />
                   <span className="text-xs text-neutral-600 leading-relaxed">
                     Saya menyatakan data pendaftaran di atas sudah benar sesuai identitas KTP/Paspor dan menyetujui seluruh{' '}
-                    <a href="#" className="font-bold underline text-neutral-800 hover:text-black">
+                    <a href="/ketentuan-booking" target="_blank" rel="noopener noreferrer" className="font-bold underline text-neutral-800 hover:text-black">
                       Syarat &amp; Ketentuan
                     </a>{' '}
                     serta kebijakan pembatalan &amp; pelunasan yang berlaku.
@@ -2218,7 +2220,7 @@ export default function BookingWizard({
                   disabled={loading || !agree || (!agenMode && !turnstileToken)}
                   className="btn-brand-cta flex-1 h-[42px] rounded-xl font-bold text-white text-[12px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  <span>{loading ? 'Memproses Booking...' : 'Konfirmasi & Bayar DP'}</span>
+                  <span>{loading ? 'Memproses Booking...' : 'Konfirmasi Pemesanan'}</span>
                   <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
@@ -2269,10 +2271,10 @@ export default function BookingWizard({
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
-                      NOMINAL DOWN PAYMENT (DP)
+                      MINIMUM PEMBAYARAN AWAL
                     </span>
                     <span className="text-2xl font-bold text-amber-950 block">
-                      {formatRp(bookingResult.nominal_dp || totalDp)}
+                      {formatRp(bookingResult.nominal_dp ?? totalDp)}
                     </span>
                   </div>
                   <button
@@ -2297,15 +2299,15 @@ export default function BookingWizard({
                   <div className="pt-3 border-t border-amber-200/60 text-xs space-y-2 text-amber-900 animate-in fade-in duration-150">
                     <div className="flex justify-between">
                       <span>Total Biaya Paket ({totalPax} Jamaah):</span>
-                      <span className="font-bold">{formatRp(bookingResult.total_harga || totalPrice)}</span>
+                      <span className="font-bold">{formatRp(bookingResult.total_harga ?? totalPrice)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Wajib DP ({totalReguler} Orang &times; {formatRp(dpPerPax)}):</span>
-                      <span className="font-bold">{formatRp(bookingResult.nominal_dp || totalDp)}</span>
+                      <span>Minimum pembayaran:</span>
+                      <span className="font-bold">{formatRp(bookingResult.nominal_dp ?? totalDp)}</span>
                     </div>
                     <div className="flex justify-between text-neutral-600 pt-1 border-t border-amber-200/40">
-                      <span>Sisa Pelunasan (H-45):</span>
-                      <span>{formatRp((bookingResult.total_harga || totalPrice) - (bookingResult.nominal_dp || totalDp))}</span>
+                      <span>Sisa pelunasan:</span>
+                      <span>{formatRp((bookingResult.total_harga ?? totalPrice) - (bookingResult.nominal_dp ?? totalDp))}</span>
                     </div>
                   </div>
                 )}

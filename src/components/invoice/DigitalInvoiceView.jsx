@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const formatRp = (num) => 'Rp ' + Number(num || 0).toLocaleString('id-ID');
 
@@ -18,6 +19,7 @@ const formatDate = (dateStr) => {
 };
 
 export default function DigitalInvoiceView({ invoice }) {
+  const router = useRouter();
   const [copiedKey, setCopiedKey] = useState(null);
   const [timeUnits, setTimeUnits] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false });
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
@@ -65,12 +67,17 @@ export default function DigitalInvoiceView({ invoice }) {
     ? (invoice.brand.logo_url.startsWith('http') ? invoice.brand.logo_url : `${apiBaseUrl}${invoice.brand.logo_url}`)
     : null;
 
-  const showCountdown = invoice.status !== 'dp' && invoice.status !== 'lunas' && invoice.status !== 'batal';
-  const regulerPaxCount = invoice.pax_items?.filter(p => p.pax_type === 'reguler').length || 1;
+  const holdExpired = invoice.reservation_status === 'held' && timeUnits.isExpired;
+  const canPay = !['expired','cancelled'].includes(invoice.reservation_status) && !holdExpired;
+  const showCountdown = invoice.reservation_status === 'held' && canPay;
+  const regulerPaxCount = invoice.pax_items?.filter(p => p.pax_type === 'reguler' && p.status === 'aktif').length || 1;
   const dpPerPax = (invoice.financial?.minimal_dp || 0) / regulerPaxCount;
 
   return (
     <div>
+      <div className="max-w-3xl mx-auto px-4 py-2 print:hidden"><button type="button" onClick={() => router.refresh()} className="min-h-11 px-3 border rounded-lg text-sm">Perbarui status pembayaran</button></div>
+      {!canPay && <div role="alert" className="max-w-3xl mx-auto p-4 bg-amber-50 text-amber-950 text-sm">Reservasi {invoice.reservation_status === 'cancelled' ? 'dibatalkan' : 'kedaluwarsa'}. Jangan transfer sebelum admin memastikan ketersediaan kursi.</div>}
+      {invoice.portal_activation_required && <div className="max-w-3xl mx-auto p-4 text-sm bg-blue-50">PIC belum memiliki PIN portal. Hubungi admin melalui nomor resmi travel untuk melengkapi tanggal lahir dan mendapatkan link aktivasi. Bukti transfer dapat disampaikan kepada admin.</div>}
       {/* Sticky Seamless Top Navigation (Hidden on Print) */}
       <header className="bg-white/95 backdrop-blur-md border-b border-neutral-200 sticky top-0 z-40 print:hidden">
         <div className="container mx-auto px-3.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between max-w-3xl">
@@ -198,7 +205,8 @@ export default function DigitalInvoiceView({ invoice }) {
               )}
               <div className="text-[11px] text-neutral-500 space-y-0.5">
                 <div>
-                  Izin PPIU No. {invoice.brand?.ppiu_number || '401/2020'} • Akreditasi {invoice.brand?.akreditasi || 'A'}
+                  {invoice.brand?.ppiu_number && <>Izin PPIU No. {invoice.brand.ppiu_number}</>}
+                  {invoice.brand?.akreditasi && <> · Akreditasi {invoice.brand.akreditasi}</>}
                 </div>
                 {(invoice.brand?.alamat || invoice.brand?.city) && (
                   <div className="text-neutral-400 max-w-[260px] leading-relaxed text-[10.5px]">
@@ -234,7 +242,7 @@ export default function DigitalInvoiceView({ invoice }) {
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse print:hidden"></span>
-                    Menunggu Pembayaran DP
+                    {holdExpired ? 'Reservasi kedaluwarsa' : invoice.status_label}
                   </span>
                 )}
               </div>
@@ -292,6 +300,7 @@ export default function DigitalInvoiceView({ invoice }) {
                         </td>
                         <td className="py-2.5 sm:py-3 px-2 font-semibold text-neutral-900">
                           {item.nama_lengkap}
+                          {item.status !== 'aktif' && <span className="block text-xs text-amber-700">Dibatalkan</span>}
                         </td>
                         <td className="py-2.5 sm:py-3 px-2 text-neutral-600 text-xs sm:text-sm font-medium">
                           {item.pax_type === 'infant' ? 'INFANT' : (item.room_type || 'Quad')}
@@ -325,7 +334,7 @@ export default function DigitalInvoiceView({ invoice }) {
                 <div className="flex items-start gap-2">
                   <span className="text-amber-600 font-bold text-sm leading-none mt-0.5">•</span>
                   <span>
-                    Minimal DP sebesar <strong className="text-neutral-900 font-black">{formatRp(invoice.financial?.minimal_dp)}</strong> ({regulerPaxCount} x {formatRp(dpPerPax)}) untuk mengamankan alokasi kursi penerbangan.
+                    Minimum pembayaran awal sebesar <strong className="text-neutral-900 font-black">{formatRp(invoice.financial?.minimal_dp)}</strong> untuk mengamankan alokasi kursi penerbangan.
                   </span>
                 </div>
                 <div className="flex items-start gap-2 text-neutral-600">
@@ -344,6 +353,8 @@ export default function DigitalInvoiceView({ invoice }) {
               </span>
 
               <div className="space-y-2 pt-1">
+                {invoice.financial?.adjustments !== 0 && <div className="flex justify-between"><span>Penyesuaian biaya / diskon</span><span>{formatRp(invoice.financial?.adjustments)}</span></div>}
+                {invoice.financial?.pending_payment > 0 && <p role="status" className="text-amber-800">Menunggu verifikasi: {formatRp(invoice.financial.pending_payment)}. Bukti tepat waktu mendapat satu tambahan verifikasi 24 jam setelah batas awal.</p>}
                 <div className="flex justify-between items-center text-neutral-600">
                   <span>Total Biaya Paket</span>
                   <span className="font-mono font-bold text-neutral-900 whitespace-nowrap">
@@ -375,7 +386,7 @@ export default function DigitalInvoiceView({ invoice }) {
             </span>
 
             <div className="divide-y divide-neutral-100">
-              {invoice.bank_accounts && invoice.bank_accounts.length > 0 ? (
+              {canPay && invoice.status !== 'lunas' && invoice.bank_accounts && invoice.bank_accounts.length > 0 ? (
                 invoice.bank_accounts.map((acc, i) => {
                   const accLogo = acc.logo_url
                     ? (acc.logo_url.startsWith('http') ? acc.logo_url : `${apiBaseUrl}${acc.logo_url}`)
@@ -436,7 +447,7 @@ export default function DigitalInvoiceView({ invoice }) {
                 })
               ) : (
                 <div className="py-2 text-xs text-neutral-500">
-                  Rekening resmi travel belum diatur.
+                  {!canPay ? 'Hubungi admin sebelum melanjutkan pembayaran.' : invoice.status === 'lunas' ? 'Tagihan sudah lunas.' : 'Hubungi admin untuk informasi rekening resmi.'}
                 </div>
               )}
             </div>
@@ -451,7 +462,7 @@ export default function DigitalInvoiceView({ invoice }) {
               <div className="flex items-start gap-2">
                 <span className="text-amber-600 font-bold text-sm leading-none mt-0.5">•</span>
                 <span>
-                  Minimal DP sebesar <strong className="text-neutral-900 font-black">{formatRp(invoice.financial?.minimal_dp)}</strong> ({regulerPaxCount} x {formatRp(dpPerPax)}) untuk mengamankan alokasi kursi penerbangan.
+                  Minimum pembayaran awal sebesar <strong className="text-neutral-900 font-black">{formatRp(invoice.financial?.minimal_dp)}</strong> untuk mengamankan alokasi kursi penerbangan.
                 </span>
               </div>
               <div className="flex items-start gap-2 text-neutral-600">

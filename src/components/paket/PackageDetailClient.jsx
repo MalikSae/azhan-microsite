@@ -1,4 +1,5 @@
 'use client';
+import { roomSavings } from '@/lib/packagePolicy.mjs';
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
@@ -215,7 +216,7 @@ export default function PackageDetailClient({
         return match[1].trim().replace(/^No\.?\s*/i, '');
       }
     }
-    return '484/2020';
+    return '';
   }, [brandPpiu, brandLegal]);
 
   // Dates & Durations
@@ -242,7 +243,7 @@ export default function PackageDetailClient({
 
   // Discount computation
   let discountBadge = null;
-  if (isPromo && originalPrice && originalPrice > schedule.harga_quad) {
+  if (activeRoom === 'quad' && isPromo && originalPrice && originalPrice > schedule.harga_quad) {
     const diff = originalPrice - schedule.harga_quad;
     if (diff >= 1000000) {
       const millions = diff / 1000000;
@@ -258,9 +259,7 @@ export default function PackageDetailClient({
   // Dynamic savings text for sticky bottom action bar (e.g. "Hemat 4,5 Juta!")
   const savingsText = useMemo(() => {
     if (!originalPrice) return null;
-    const diff = originalPrice > activePrice 
-      ? originalPrice - activePrice 
-      : (originalPrice > (schedule.harga_quad || 0) ? originalPrice - (schedule.harga_quad || 0) : 0);
+    const diff = roomSavings(schedule, activeRoom);
 
     if (diff <= 0) return null;
 
@@ -275,11 +274,11 @@ export default function PackageDetailClient({
       return `Hemat ${Math.round(diff / 1000)} Rb!`;
     }
     return null;
-  }, [originalPrice, activePrice, schedule.harga_quad]);
+  }, [originalPrice, activePrice, schedule, activeRoom]);
 
   // Compact formatted original price for sticky bottom action bar (e.g. "29,5 Jt")
   const formattedOriginalPrice = useMemo(() => {
-    if (!originalPrice || originalPrice <= activePrice) return null;
+    if (activeRoom !== 'quad' || !isPromo || !originalPrice || originalPrice <= activePrice) return null;
     if (originalPrice >= 1000000) {
       const millions = originalPrice / 1000000;
       const formatted = Number.isInteger(millions)
@@ -291,7 +290,7 @@ export default function PackageDetailClient({
       return `${Math.round(originalPrice / 1000)} Rb`;
     }
     return formatRupiah(originalPrice);
-  }, [originalPrice, activePrice]);
+  }, [originalPrice, activePrice, activeRoom, isPromo]);
 
   // Seats
   const seatTotal = schedule.seat_total || 0;
@@ -443,7 +442,7 @@ export default function PackageDetailClient({
                 clipRule="evenodd"
               />
             </svg>
-            <span>Izin PPIU No. {ppiuNumber}</span>
+            <span>{ppiuNumber ? `Izin PPIU No. ${ppiuNumber}` : 'Informasi izin: hubungi admin'}</span>
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold shadow-2xs">
@@ -454,7 +453,7 @@ export default function PackageDetailClient({
                 d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
               />
             </svg>
-            <span>100% Pasti Berangkat</span>
+            <span>{schedule.is_ticket_confirmed ? 'Tiket Dikonfirmasi' : 'Tiket Belum Dikonfirmasi'}</span>
           </div>
         </div>
       </div>
@@ -1136,8 +1135,8 @@ export default function PackageDetailClient({
                 <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
               </svg>
             </div>
-            <span className="text-[12px] font-extrabold text-neutral-900 leading-tight">Pasti Berangkat</span>
-            <span className="text-[10px] font-medium text-neutral-500 mt-1 leading-tight">Tiket terbit resmi</span>
+            <span className="text-[12px] font-extrabold text-neutral-900 leading-tight">{schedule.is_ticket_confirmed ? 'Tiket Dikonfirmasi' : 'Konfirmasi Tiket'}</span>
+            <span className="text-[10px] font-medium text-neutral-500 mt-1 leading-tight">{schedule.is_ticket_confirmed ? 'Dikonfirmasi oleh admin' : 'Hubungi admin untuk status tiket'}</span>
           </div>
 
           {/* Card 2: Hotel Terjamin */}
@@ -1195,14 +1194,14 @@ export default function PackageDetailClient({
 
         {/* Right: CTAs (Booking Button di kiri, Chat WA icon-only solid hijau di kanan) */}
         <div className="flex items-center gap-2 shrink-0">
-          {isCutoff ? (
+          {(isCutoff || seatSisa <= 0) ? (
             <a
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
               className="h-[40px] px-4 flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all text-[12px] font-bold shadow-xs"
             >
-              <span>Booking via WA</span>
+              <span>{seatSisa <= 0 ? 'Kuota Penuh - Hubungi Admin' : 'Booking via WA'}</span>
             </a>
           ) : (
             <Link

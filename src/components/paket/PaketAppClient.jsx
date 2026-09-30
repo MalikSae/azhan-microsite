@@ -1,4 +1,5 @@
 'use client';
+import { matchesCategory } from '@/lib/packagePolicy.mjs';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import HomeAppCard from '@/components/home/HomeAppCard';
@@ -68,7 +69,11 @@ export default function PaketAppClient({
   initialQuery = '',
 }) {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [activeCategory, setActiveCategory] = useState(initialCategory);
+  const [activeCategory, setActiveCategory] = useState(() => {
+    const category = initialSchedules.find(s => matchesCategory(s, initialCategory))?.category;
+    return category && initialCategory !== 'all' && initialCategory !== 'promo'
+      ? category.slug || String(category.id) : initialCategory;
+  });
   const [activeChip, setActiveChip] = useState(initialChip);
   const [sortBy, setSortBy] = useState('departure_asc');
   const [showSort, setShowSort] = useState(false);
@@ -108,20 +113,7 @@ export default function PaketAppClient({
       });
     }
 
-    // 2. Category filter (sesuai HomeAppCategories)
-    if (activeCategory === 'reguler') {
-      result = result.filter(
-        (s) => !s.jadwal_nama?.toLowerCase().includes('turki') && !s.jadwal_nama?.toLowerCase().includes('haji')
-      );
-    } else if (activeCategory === 'plus') {
-      result = result.filter(
-        (s) => s.jadwal_nama?.toLowerCase().includes('turki') || s.jadwal_nama?.toLowerCase().includes('plus')
-      );
-    } else if (activeCategory === 'haji') {
-      result = result.filter((s) => s.jadwal_nama?.toLowerCase().includes('haji'));
-    } else if (activeCategory === 'promo') {
-      result = result.filter((s) => s.is_promo);
-    }
+    result = result.filter((schedule) => matchesCategory(schedule, activeCategory));
 
     // 3. Quick Filter Chips
     if (activeChip === 'promo') {
@@ -192,9 +184,8 @@ export default function PaketAppClient({
   // Dynamic Title
   const getSectionTitle = () => {
     if (searchQuery.trim()) return `Hasil "${searchQuery.trim()}"`;
-    if (activeCategory === 'reguler') return 'Paket Umroh Reguler';
-    if (activeCategory === 'plus') return 'Paket Umroh Plus Turki';
-    if (activeCategory === 'haji') return 'Haji Khusus';
+    const category = initialSchedules.find(s => matchesCategory(s, activeCategory))?.category;
+    if (activeCategory !== 'all' && activeCategory !== 'promo' && category) return category.name;
     if (activeCategory === 'promo' || activeChip === 'promo') return '🔥 Paket Promo';
     if (activeChip === 'flash_sale') return '⚡ Flash Sale';
     if (activeChip === 'hampir_penuh') return '🔔 Hampir Penuh';
@@ -204,6 +195,14 @@ export default function PaketAppClient({
 
   return (
     <div className="w-full flex flex-col gap-[14px]">
+      <label className="text-sm font-semibold">Kategori paket
+        <select aria-label="Kategori paket" value={activeCategory} onChange={e => setActiveCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-neutral-200 px-3">
+          <option value="all">Semua kategori</option>
+          <option value="promo">Promo</option>
+          {[...new Map(initialSchedules.filter(s => s.category).map(s => [String(s.category.id), s.category])).values()].map(c => <option key={c.id} value={c.slug || String(c.id)}>{c.name}</option>)}
+        </select>
+      </label>
+
 
       {/* ━━━ Search Bar (Mobile App Style - sama persis dengan Home) ━━━ */}
       <div className="box-border w-full h-[38px] shrink-0 flex flex-row gap-[10px] p-[0px_12px] justify-between items-center bg-[#FFFFFF] border border-[#ECEEF5] rounded-[14px] shadow-2xs">
@@ -222,6 +221,7 @@ export default function PaketAppClient({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Cari paket, maskapai, atau hotel"
             placeholder="Cari paket umroh, maskapai, hotel..."
             className="w-full bg-transparent text-[11px] text-[#1A1A2E] placeholder:text-[#6B7280] font-medium focus:outline-none"
           />

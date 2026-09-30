@@ -1,3 +1,4 @@
+import { getScheduleForCurrentBrand as getSchedule } from '@/lib/publicSchedule';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import Link from 'next/link';
@@ -15,18 +16,6 @@ async function getBankAccounts(brandId) {
   }
 }
 
-async function getSchedule(id) {
-  if (!id) return null;
-  const numericId = id.split('-')[0];
-  const baseUrl = process.env.API_BASE_URL_INTERNAL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
-  const res = await fetch(`${baseUrl}/api/schedules/${numericId}`, { cache: 'no-store' });
-  if (!res.ok) {
-    if (res.status === 404) return null;
-    throw new Error('Gagal memuat detail paket');
-  }
-  return res.json();
-}
-
 export default async function BookPackagePage({ params, searchParams }) {
   const headerList = await headers();
   const brandName = headerList.get('x-brand-name') || 'Azhan Travel';
@@ -34,8 +23,8 @@ export default async function BookPackagePage({ params, searchParams }) {
   const brandIdStr = headerList.get('x-brand-id') || '0';
   const brandId = parseInt(brandIdStr, 10) || 0;
   const brandWhatsapp = headerList.get('x-brand-whatsapp') || '';
-  const brandPpiu = headerList.get('x-brand-ppiu') || 'No. 484/2020';
-  const brandLegal = headerList.get('x-brand-legal') || 'PPIU: No. 484/2020 | PIHK: No. 395/2021';
+  const brandPpiu = headerList.get('x-brand-ppiu') || '';
+  const brandLegal = headerList.get('x-brand-legal') || '';
   const brandLogo = headerList.get('x-brand-logo') || '';
 
   const resolvedParams = await params;
@@ -95,7 +84,7 @@ export default async function BookPackagePage({ params, searchParams }) {
 
         {/* Content Container */}
         <div className="flex-1 px-4 py-4 pb-28">
-          {isCutoff ? (
+          {(isCutoff || schedule.seat_sisa <= 0) ? (
             <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm text-center space-y-4 my-6">
               <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-600 flex items-center justify-center mx-auto shadow-2xs">
                 <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -105,16 +94,16 @@ export default async function BookPackagePage({ params, searchParams }) {
               
               <div className="space-y-1.5">
                 <h2 className="text-lg font-bold text-neutral-900 font-heading">
-                  Pendaftaran Online Ditutup
+                  {schedule.seat_sisa <= 0 ? 'Kuota Paket Penuh' : 'Pendaftaran Online Ditutup'}
                 </h2>
                 <p className="text-xs text-neutral-500 leading-relaxed">
-                  Jadwal keberangkatan <strong>{schedule.jadwal_nama}</strong> ({schedule.berangkat_tanggal}) berjarak kurang dari 14 hari atau sudah lewat.
+                  {schedule.seat_sisa <= 0 ? 'Kursi paket ini sudah habis. Hubungi admin untuk alternatif keberangkatan.' : `Keberangkatan ${schedule.jadwal_nama} berjarak kurang dari 14 hari atau sudah lewat.`}
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-neutral-200/80 text-[11.5px] text-neutral-600 leading-relaxed text-left">
+              {isCutoff && <div className="p-3.5 rounded-xl bg-slate-50 border border-neutral-200/80 text-[11.5px] text-neutral-600 leading-relaxed text-left">
                 Pendaftaran online mandiri ditutup pada <strong>H-14 keberangkatan</strong> untuk finalisasi manifes tiket penerbangan, visa, dan pemesanan kamar hotel.
-              </div>
+              </div>}
 
               <div className="pt-2 flex flex-col gap-2">
                 <Link 

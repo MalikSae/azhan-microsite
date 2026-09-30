@@ -1,95 +1,11 @@
+import { getScheduleForCurrentBrand as getSchedule } from '@/lib/publicSchedule';
+import { serializeJsonLd } from '@/lib/packagePolicy.mjs';
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import PackageDetailClient from '@/components/paket/PackageDetailClient';
 import FooterSection from '@/components/FooterSection';
 import { getPublicBankAccounts } from '@/lib/api';
-
-const DUMMY_FALLBACK_SCHEDULES = [
-  {
-    id: 101,
-    jadwal_nama: 'Paket Umroh Hana Reguler Syawal',
-    is_promo: true,
-    views: 1,
-    promo_until: null,
-    is_ticket_confirmed: true,
-    is_direct_flight: false,
-    seat_total: 45,
-    seat_sisa: 6,
-    maskapai: { id: 10, name: 'EMIRATES', logo_url: '/uploads/airline-logos/181837fa-a756-456f-891c-6f3af052723e.webp' },
-    berangkat_tanggal: '2026-10-15',
-    berangkat_jam: '08:00',
-    berangkat_kode_penerbangan: 'SV815',
-    berangkat_bandara_asal: 'CGK',
-    berangkat_bandara_tujuan: 'JED',
-    pulang_tanggal: '2026-10-24',
-    pulang_jam: '14:00',
-    pulang_kode_penerbangan: 'SV816',
-    pulang_bandara_asal: 'MED',
-    pulang_bandara_tujuan: 'CGK',
-    transit_bandara: 'Berangkat: KUL, 2 Jam',
-    hotel_mekkah: { id: 8, name: 'ANJUM', star_rating: 5, distance_m: 400, photo_url: null },
-    hotel_madinah: { id: 7, name: 'ANDALUS', star_rating: 3, distance_m: 350, photo_url: null },
-    transit_hotels: [{ hotel_id: 18, urutan: 0, nama: 'ADDRESS DUBAI MALL', kota: 'Dubai', star_rating: 5, photo_url: null }],
-    harga_quad: 28500000,
-    harga_triple: 30500000,
-    harga_double: 33000000,
-    harga_infant: 12000000,
-    harga_coret: 30000000,
-    minimal_dp: 5000000,
-    itinerary_id: 14,
-    include_items: ['Tiket Pesawat PP', 'Visa Umroh & Asuransi', 'Kereta Cepat Haramain'],
-    exclude_items: ['Paspor', 'Kebutuhan Pribadi'],
-    add_ons: [{ id: 8, name: 'AL BAIK' }, { id: 10, name: 'CITY TOUR TURKI' }],
-    brosur_url: '',
-    brosur_thumb_url: '',
-  },
-  {
-    id: 102,
-    jadwal_nama: 'Umroh Plus Turki 12 Hari',
-    is_promo: false,
-    views: 0,
-    promo_until: null,
-    is_ticket_confirmed: false,
-    is_direct_flight: false,
-    seat_total: 45,
-    seat_sisa: 7,
-    maskapai: { id: 9, name: 'TURKISH AIRLINES', logo_url: '' },
-    berangkat_tanggal: '2026-11-05',
-    pulang_tanggal: '2026-11-16',
-    hotel_mekkah: { id: 12, name: 'PULLMAN ZAMZAM', star_rating: 5, distance_m: 100, photo_url: null },
-    hotel_madinah: { id: 13, name: 'DAR AL TAQWA', star_rating: 5, distance_m: 50, photo_url: null },
-    harga_quad: 44500000,
-    harga_triple: 46500000,
-    harga_double: 49500000,
-    harga_coret: null,
-    minimal_dp: 5000000,
-    itinerary_id: null,
-    include_items: ['Bosphorus Cruise', 'Kereta Cepat Haramain'],
-    exclude_items: ['Paspor'],
-    add_ons: [],
-  },
-];
-
-async function getSchedule(id) {
-  if (!id) return null;
-  const numericId = parseInt(id.split('-')[0], 10);
-  if (isNaN(numericId)) return null;
-  const baseUrl = process.env.API_BASE_URL_INTERNAL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
-
-  try {
-    const res = await fetch(`${baseUrl}/api/schedules/${numericId}`, { cache: 'no-store' });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    console.error('Gagal mengambil jadwal paket dari API:', err);
-  }
-
-  // Fallback ke dummy list jika backend tidak menemukan ID tersebut saat testing
-  const dummy = DUMMY_FALLBACK_SCHEDULES.find((s) => s.id === numericId);
-  return dummy || null;
-}
 
 async function getItinerary(itineraryId) {
   if (!itineraryId) return null;
@@ -312,7 +228,7 @@ export default async function PackageDetailPage({ params }) {
     <main className="min-h-screen bg-[#EEF2F6] pb-20 md:pb-6">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(combinedSchemas) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(combinedSchemas) }}
       />
       {/* Seamless Mobile App Shell Container (max-w-md centered on desktop) */}
       <div className="max-w-md mx-auto bg-white border-x border-neutral-100 shadow-2xl shadow-neutral-300/30 flex flex-col relative min-h-screen">

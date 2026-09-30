@@ -1,10 +1,11 @@
+import { bindRequestBrand } from '@/lib/requestBrand';
 import { NextResponse } from 'next/server';
 import { clientIpHeaders } from '@/lib/forwardClientIp';
 import { kodeReferralFromRequest } from '@/lib/referral';
 
 export async function POST(request) {
   try {
-    const body = await request.json();
+    const body = await bindRequestBrand(request, await request.json());
     // Kode referral hanya dari cookie link agen, nilai dari browser diabaikan.
     body.kode_referral = kodeReferralFromRequest(request);
     const authHeader = request.headers.get('authorization');
@@ -37,7 +38,7 @@ export async function POST(request) {
   } catch (err) {
     return NextResponse.json(
       { error: err.message || 'Gagal menghubungi server pendaftaran.' },
-      { status: 500 }
+      { status: err.status || 503 }
     );
   }
 }

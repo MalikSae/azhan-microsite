@@ -1,3 +1,4 @@
+import PackageLoadError from '@/components/ui/PackageLoadError';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { getPublicSchedules, getPublicBankAccounts } from '@/lib/api';
@@ -87,10 +88,12 @@ export default async function PaketPage({ searchParams }) {
   }
 
   let schedules = [];
+  let loadFailed = false;
   try {
     schedules = await getPublicSchedules(brandId);
   } catch (err) {
     console.error('Gagal mengambil paket umroh:', err);
+    loadFailed = true;
   }
 
   let bankAccounts = [];
@@ -152,14 +155,14 @@ export default async function PaketPage({ searchParams }) {
         {/* App Content Container */}
         <div className="box-border w-full h-fit flex flex-col gap-[16px] p-[16px_16px_24px_16px]">
           {/* Dynamic App Content Client */}
-          <PaketAppClient
+          {loadFailed ? <PackageLoadError /> : <PaketAppClient
             initialSchedules={schedules}
             brandWhatsapp={brandWhatsapp}
             brandName={brandName}
             initialCategory={initialCategory}
             initialChip={initialChip}
             initialQuery={initialQuery}
-          />
+          />}
         </div>
 
         {/* Compact App Footer */}
