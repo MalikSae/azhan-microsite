@@ -7,6 +7,7 @@ import { usePortalAuth } from '@/context/PortalAuthContext';
 import { useBrand } from '@/context/BrandContext';
 import { formatTanggalIndo } from '@/lib/portalFormat';
 import Card from '@/components/ui/Card';
+import CashbackPanel from '@/components/portal/CashbackPanel';
 
 export default function PortalProfilPage() {
   const router = useRouter();
@@ -20,9 +21,9 @@ export default function PortalProfilPage() {
     }
   }, [isLoading, jamaah, router]);
 
-  const handleLogout = () => {
-    logout();
-    router.replace('/portal/login');
+  const [logoutError, setLogoutError] = useState('');
+  const handleLogout = async () => {
+    try { await logout(); router.replace('/portal/login'); } catch (e) { setLogoutError(e.message); }
   };
 
   if (isLoading || !jamaah) {
@@ -40,7 +41,7 @@ export default function PortalProfilPage() {
   const idJamaah = jamaah.id_jamaah || jamaah.id || '-';
   const noHp = jamaah.no_hp || jamaah.nomor_wa || jamaah.phone || '-';
   const nik = jamaah.nik || jamaah.nomor_ktp || '-';
-  const noPaspor = jamaah.nomor_paspor || jamaah.paspor_nomor || '-';
+  const noPaspor = jamaah.no_paspor || '-';
   const jenisKelamin =
     jamaah.jenis_kelamin === 'L' || jamaah.jenis_kelamin === 'LAKI_LAKI'
       ? 'Laki-laki'
@@ -226,6 +227,8 @@ export default function PortalProfilPage() {
         </div>
       </Card>
 
+      <CashbackPanel />
+      {logoutError && <p role="alert" className="text-sm">{logoutError}</p>}
       {/* 4. Tombol Logout */}
       <div className="pt-2">
         {showLogoutConfirm ? (

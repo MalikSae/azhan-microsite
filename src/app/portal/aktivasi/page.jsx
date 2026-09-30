@@ -12,6 +12,7 @@ function AktivasiContent() {
   const { brandName, brandLogo, brandIcon } = useBrand();
 
   const [status, setStatus] = useState('loading'); // 'loading' | 'invalid' | 'valid' | 'success'
+  const [retry, setRetry] = useState(0);
   const [step, setStep] = useState(1); // 1 | 2 | 3
   const [namaLengkap, setNamaLengkap] = useState('');
   const [tanggalLahir, setTanggalLahir] = useState('');
@@ -29,6 +30,7 @@ function AktivasiContent() {
       return;
     }
 
+    setStatus('loading');
     let isMounted = true;
 
     async function verifyToken() {
@@ -45,12 +47,14 @@ function AktivasiContent() {
         if (res.ok && data.valid) {
           setNamaLengkap(data.nama_lengkap || '');
           setStatus('valid');
+        } else if (!res.ok) {
+          setStatus('error');
         } else {
           setStatus('invalid');
         }
       } catch {
         if (isMounted) {
-          setStatus('invalid');
+          setStatus('error');
         }
       }
     }
@@ -60,7 +64,7 @@ function AktivasiContent() {
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [token, retry]);
 
   // Handler Input PIN 6 Digit Numerik
   const handlePinChange = (e) => {
@@ -273,6 +277,7 @@ function AktivasiContent() {
                   </div>
                 )}
 
+                {status === 'error' && <div role="alert" className="space-y-3 text-sm"><p>Link belum dapat diperiksa. Periksa koneksi lalu coba lagi.</p><button type="button" className="min-h-11 px-4 border rounded-xl" onClick={() => setRetry(n => n + 1)}>Coba lagi</button></div>}
                 {/* 2. STATE INVALID */}
                 {status === 'invalid' && (
                   <div className="text-center py-2 space-y-4">

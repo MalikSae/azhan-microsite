@@ -61,7 +61,7 @@ export default function BookingAgenPage() {
     setLoadingSchedule(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/schedules/${id}`, { cache: 'no-store' });
+      const res = await fetch(`${API_BASE_URL}/api/schedules/${id}?brand=${brandId}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Gagal memuat detail paket');
       setSchedule(await res.json());
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -125,6 +125,8 @@ export default function BookingAgenPage() {
           initialBankAccounts={bankAccounts}
           travelAccounts={bankAccounts}
           agenMode
+          draftOwnerId={jamaah.id}
+          onQuoteChanged={() => pilihJadwal(schedule.id)}
         />
       ) : (
         <div className="space-y-2.5">

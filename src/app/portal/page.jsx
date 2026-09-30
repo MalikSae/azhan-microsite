@@ -13,6 +13,7 @@ import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
 import PackageCard from '@/components/PackageCard';
 import ItineraryModal from '@/components/ItineraryModal';
+import { requirements, documentProgress } from '@/lib/portalPolicy.mjs';
 
 function parseLocalDate(dateStr) {
   if (!dateStr) return null;
@@ -105,7 +106,7 @@ export default function PortalDashboardPage() {
               setPayments(Array.isArray(paymentsRes) ? paymentsRes : []);
             }
           } catch (err) {
-            console.error('Gagal mengambil payments:', err);
+            throw err;
           }
         } else if (brandId) {
           try {
@@ -159,7 +160,7 @@ export default function PortalDashboardPage() {
   if (hasError) {
     return (
       <div className="flex-1 flex items-center justify-center p-6 text-sm text-neutral-500 text-center">
-        Gagal memuat data. Coba muat ulang halaman.
+        Gagal memuat data. <button type="button" className="underline min-h-11 px-3" onClick={() => window.location.reload()}>Coba lagi</button>
       </div>
     );
   }
@@ -192,30 +193,16 @@ export default function PortalDashboardPage() {
     ? [
         selectedBooking.progress_tiket,
         selectedBooking.progress_hotel,
-        selectedBooking.progress_visa,
+        selectedBooking.personal_pax?.progress_visa,
         selectedBooking.progress_land_arrangement,
-        selectedBooking.progress_siskopatuh,
-        selectedBooking.progress_manasik,
+        selectedBooking.personal_pax?.progress_siskopatuh,
+        ...(selectedBooking.personal_pax?.pax_type === 'infant' ? [] : [selectedBooking.personal_pax?.progress_manasik]),
       ]
     : [];
   const completedTravelProgressCount = travelProgressFields.filter(Boolean).length;
 
-  // 3. Perhitungan Kelengkapan Dokumen (7 Jenis)
-  const validDocTypes = [
-    'pas_foto',
-    'paspor',
-    'ktp',
-    'kk',
-    'buku_nikah',
-    'akte_lahir',
-    'vaksin_meningitis',
-  ];
-  const approvedDocTypes = new Set(
-    dokumenList
-      .filter((d) => d.status === 'approved' && validDocTypes.includes(d.jenis))
-      .map((d) => d.jenis)
-  );
-  const approvedDocsCount = approvedDocTypes.size;
+  const docProgress = documentProgress(dokumenList, requirements(jamaah, selectedBooking));
+  const approvedDocsCount = docProgress.approved;
 
   // 4. Perhitungan Pembayaran (Status Real: confirmed / verified)
   const totalDibayar = payments
@@ -225,27 +212,17 @@ export default function PortalDashboardPage() {
   const sisaTagihan = Math.max(0, totalHarga - totalDibayar);
   const percentPaid = totalHarga > 0 ? Math.min(100, Math.round((totalDibayar / totalHarga) * 100)) : 0;
 
-  let jatuhTempoStr = null;
-  if (selectedBooking?.berangkat_tanggal) {
-    const depDate = parseLocalDate(selectedBooking.berangkat_tanggal);
-    if (depDate) {
-      const dueDate = new Date(depDate);
-      dueDate.setDate(dueDate.getDate() - 30);
-      const day = dueDate.getDate();
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-      jatuhTempoStr = `${day} ${months[dueDate.getMonth()]} ${dueDate.getFullYear()}`;
-    }
-  }
+  const jatuhTempoStr = selectedBooking?.due_at ? new Date(selectedBooking.due_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB' : null;
 
   // 5. Data Stepper 6 Node: Murni Pekerjaan Travel Umroh
   const stepperNodes = selectedBooking
     ? [
         { label: 'Tiket', done: Boolean(selectedBooking.progress_tiket) },
         { label: 'Hotel', done: Boolean(selectedBooking.progress_hotel) },
-        { label: 'Visa', done: Boolean(selectedBooking.progress_visa) },
+        { label: 'Visa', done: Boolean(selectedBooking.personal_pax?.progress_visa) },
         { label: 'LA', done: Boolean(selectedBooking.progress_land_arrangement) },
-        { label: 'Siskopatuh', done: Boolean(selectedBooking.progress_siskopatuh) },
-        { label: 'Manasik', done: Boolean(selectedBooking.progress_manasik) },
+        { label: 'Siskopatuh', done: Boolean(selectedBooking.personal_pax?.progress_siskopatuh) },
+        ...(selectedBooking.personal_pax?.pax_type === 'infant' ? [] : [{ label: 'Manasik', done: Boolean(selectedBooking.personal_pax?.progress_manasik) }]),
       ]
     : [];
 
@@ -381,7 +358,7 @@ export default function PortalDashboardPage() {
 
             {/* Status Pembayaran & Tagihan (Progress Bar) */}
             <Link
-              href="/portal/pembayaran"
+              href={'/portal/pembayaran?booking=' + selectedBooking?.id}
               className="block mt-3.5 pt-3.5 border-t border-neutral-100 group"
             >
               {/* Di kiri angka terbayar, di kanan angka total */}
@@ -481,7 +458,7 @@ export default function PortalDashboardPage() {
         <div className="grid grid-cols-4 gap-2 py-1">
           {/* Menu 1: Manasik */}
           <Link
-            href="/portal/perjalanan"
+            href={selectedBooking ? '/portal/perjalanan?booking=' + selectedBooking.id : '/portal/perjalanan'}
             className="flex flex-col items-center justify-center text-center group"
           >
             <div className="w-12 h-12 aspect-square rounded-2xl bg-brand text-white flex items-center justify-center shrink-0 mb-1.5 shadow-xs group-hover:scale-105 transition-transform">
@@ -506,7 +483,7 @@ export default function PortalDashboardPage() {
 
           {/* Menu 2: Doa-doa */}
           <Link
-            href="/portal/perjalanan"
+            href={selectedBooking ? '/portal/perjalanan?booking=' + selectedBooking.id : '/portal/perjalanan'}
             className="flex flex-col items-center justify-center text-center group"
           >
             <div className="w-12 h-12 aspect-square rounded-2xl bg-brand text-white flex items-center justify-center shrink-0 mb-1.5 shadow-xs group-hover:scale-105 transition-transform">
@@ -531,7 +508,7 @@ export default function PortalDashboardPage() {
 
           {/* Menu 3: Tips Umroh */}
           <Link
-            href="/portal/perjalanan"
+            href={selectedBooking ? '/portal/perjalanan?booking=' + selectedBooking.id : '/portal/perjalanan'}
             className="flex flex-col items-center justify-center text-center group"
           >
             <div className="w-12 h-12 aspect-square rounded-2xl bg-brand text-white flex items-center justify-center shrink-0 mb-1.5 shadow-xs group-hover:scale-105 transition-transform">
@@ -735,7 +712,7 @@ export default function PortalDashboardPage() {
               {/* Baris Ringkasan di Bawah Stepper */}
               <div className="mt-3.5 pt-3 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-600">
                 <span className="font-medium">
-                  {completedTravelProgressCount} dari 6 tahap selesai
+                  {completedTravelProgressCount} dari {travelProgressFields.length} tahap selesai
                 </span>
                 {selectedBooking.siap_berangkat && (
                   <Badge variant="success">Siap Berangkat</Badge>
@@ -776,7 +753,7 @@ export default function PortalDashboardPage() {
                     Dokumen Persyaratan
                   </h3>
                   <span className="text-[11px] font-semibold text-brand">
-                    {approvedDocsCount}/7
+                    {approvedDocsCount}/{docProgress.total}
                   </span>
                 </div>
                 <p className="text-xs text-neutral-500 mt-0.5">
@@ -785,7 +762,7 @@ export default function PortalDashboardPage() {
                 <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden mt-2">
                   <div
                     className="h-full bg-brand rounded-full transition-all duration-300"
-                    style={{ width: `${(approvedDocsCount / 7) * 100}%` }}
+                    style={{ width: `${(approvedDocsCount / docProgress.total) * 100}%` }}
                   />
                 </div>
               </div>
