@@ -1,3 +1,4 @@
+import { serializeJsonLd } from '@/lib/packagePolicy.mjs';
 import { headers } from 'next/headers';
 import { DM_Sans } from 'next/font/google';
 import './globals.css';
@@ -166,7 +167,7 @@ export default async function RootLayout({ children }) {
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(travelAgencySchema) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(travelAgencySchema) }}
         />
       </head>
       <body className={`antialiased text-neutral-900 min-h-screen bg-neutral-50 ${dmSans.className}`} suppressHydrationWarning>

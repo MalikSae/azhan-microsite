@@ -10,89 +10,6 @@ import HomeAppTestimonial from './HomeAppTestimonial';
 import HomeAppWhatsAppCard from './HomeAppWhatsAppCard';
 import HomeAppCard from './HomeAppCard';
 
-const DUMMY_SCHEDULES = [
-  {
-    id: 101,
-    jadwal_nama: 'Umroh Saudia 9 Hari Reguler',
-    is_promo: false,
-    is_direct_flight: true,
-    seat_total: 45,
-    seat_sisa: 4,
-    maskapai: { id: 7, name: 'SAUDIA', logo_url: '' },
-    berangkat_tanggal: '2026-10-15',
-    pulang_tanggal: '2026-10-23',
-    hotel_mekkah: { id: 10, name: 'AZKA SAFA', star_rating: 5, distance_m: 300 },
-    hotel_madinah: { id: 11, name: 'ROYAL ANDALUS', star_rating: 4, distance_m: 150 },
-    harga_quad: 38999000,
-    harga_triple: 40999000,
-    harga_double: 43999000,
-    harga_coret: null,
-    include_items: ['Kereta Cepat Haramain', 'City Tour Taif'],
-    exclude_items: [],
-    add_ons: []
-  },
-  {
-    id: 102,
-    jadwal_nama: 'Umroh Plus Turki 12 Hari',
-    is_promo: false,
-    is_direct_flight: false,
-    seat_total: 45,
-    seat_sisa: 7,
-    maskapai: { id: 9, name: 'TURKISH AIRLINES', logo_url: '' },
-    berangkat_tanggal: '2026-11-05',
-    pulang_tanggal: '2026-11-16',
-    hotel_mekkah: { id: 12, name: 'PULLMAN ZAMZAM', star_rating: 5, distance_m: 100 },
-    hotel_madinah: { id: 13, name: 'DAR AL TAQWA', star_rating: 5, distance_m: 50 },
-    harga_quad: 44500000,
-    harga_triple: 46500000,
-    harga_double: 49500000,
-    harga_coret: null,
-    include_items: ['Bosphorus Cruise', 'Kereta Cepat Haramain'],
-    exclude_items: [],
-    add_ons: []
-  },
-  {
-    id: 103,
-    jadwal_nama: 'Umroh Syawal Eksekutif 9 Hari',
-    is_promo: true,
-    is_direct_flight: true,
-    seat_total: 45,
-    seat_sisa: 3,
-    maskapai: { id: 7, name: 'SAUDIA', logo_url: '' },
-    berangkat_tanggal: '2026-12-10',
-    pulang_tanggal: '2026-12-18',
-    hotel_mekkah: { id: 14, name: 'DAR AL TAWHID', star_rating: 5, distance_m: 50 },
-    hotel_madinah: { id: 15, name: 'OBEROH MADINAH', star_rating: 5, distance_m: 100 },
-    harga_quad: 36900000,
-    harga_triple: 38900000,
-    harga_double: 41900000,
-    harga_coret: 39900000,
-    include_items: ['Kereta Cepat Haramain', 'Free Albaik'],
-    exclude_items: [],
-    add_ons: []
-  },
-  {
-    id: 104,
-    jadwal_nama: 'Haji Khusus Furoda VIP 2027',
-    is_promo: false,
-    is_direct_flight: true,
-    seat_total: 20,
-    seat_sisa: 2,
-    maskapai: { id: 1, name: 'GARUDA INDONESIA', logo_url: '' },
-    berangkat_tanggal: '2027-05-20',
-    pulang_tanggal: '2027-06-15',
-    hotel_mekkah: { id: 16, name: 'FAIRMONT MAKKAH', star_rating: 5, distance_m: 50 },
-    hotel_madinah: { id: 17, name: 'THE RITZ-CARLTON', star_rating: 5, distance_m: 100 },
-    harga_quad: 285000000,
-    harga_triple: 310000000,
-    harga_double: 340000000,
-    harga_coret: null,
-    include_items: ['Tenda VIP Mina AC', 'Maktab Khusus'],
-    exclude_items: [],
-    add_ons: []
-  }
-];
-
 export default function HomeAppClient({
   initialSchedules = [],
   brandName = 'Travel Umroh',
@@ -100,8 +17,7 @@ export default function HomeAppClient({
   brandLogoUrl = '',
   brandLegal = 'Izin Resmi PPIU Kemenag RI'
 }) {
-  const isUsingDummy = !initialSchedules || initialSchedules.length === 0;
-  const rawList = isUsingDummy ? DUMMY_SCHEDULES : initialSchedules;
+  const rawList = initialSchedules || [];
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('all');

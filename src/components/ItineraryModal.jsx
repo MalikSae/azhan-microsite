@@ -1,8 +1,10 @@
 'use client';
+import useDialogFocus from './ui/useDialogFocus';
 
 import React, { useState, useEffect } from 'react';
 
 export default function ItineraryModal({ itineraryId, isOpen, onClose }) {
+  const dialogRef = useDialogFocus(isOpen);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -47,13 +49,13 @@ export default function ItineraryModal({ itineraryId, isOpen, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}>
       {/* Modal Card */}
-      <div 
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="itinerary-title"
         className="bg-white rounded-t-3xl shadow-xl w-full max-w-[460px] max-h-[92dvh] flex flex-col overflow-hidden animate-dropdown relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="px-4 py-3 border-b border-neutral-200 flex justify-between items-center bg-neutral-50 shrink-0">
-          <h2 className="text-lg font-bold text-neutral-900">Detail Itinerary</h2>
+          <h2 id="itinerary-title" className="text-lg font-bold text-neutral-900">Detail Itinerary</h2>
           <button 
             onClick={onClose}
             className="text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200 p-2 rounded-xl transition-colors"

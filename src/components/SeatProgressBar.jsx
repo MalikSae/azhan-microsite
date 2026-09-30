@@ -37,7 +37,7 @@ export default function SeatProgressBar({ totalSeat, bookedSeat, seatTotal, seat
           </span>
         </div>
         <div className="w-full h-2.5 bg-amber-100/50 rounded-full overflow-hidden border border-amber-200/50 p-[1px] shadow-inner">
-          <div className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 bg-amber-500 animate-progress-stripes" style={{ width: `${Math.max(5, percentage)}%` }} />
+          <div className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 bg-amber-500 animate-progress-stripes" style={{ width: `${percentage}%` }} />
         </div>
       </div>
     );
@@ -56,7 +56,7 @@ export default function SeatProgressBar({ totalSeat, bookedSeat, seatTotal, seat
           </span>
         </div>
         <div className="w-full h-2.5 bg-neutral-100 rounded-full overflow-hidden border border-neutral-200/80 p-[1px] shadow-inner">
-          <div className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-400 to-emerald-500 bg-emerald-500 animate-progress-stripes" style={{ width: `${Math.max(5, percentage)}%` }} />
+          <div className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-400 to-emerald-500 bg-emerald-500 animate-progress-stripes" style={{ width: `${percentage}%` }} />
         </div>
       </div>
     );
@@ -74,7 +74,7 @@ export default function SeatProgressBar({ totalSeat, bookedSeat, seatTotal, seat
         </span>
       </div>
       <div className="w-full h-2.5 bg-neutral-100 rounded-full overflow-hidden border border-neutral-200/80 p-[1px] shadow-inner">
-        <div className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-300 to-emerald-400 bg-emerald-400" style={{ width: '15%' }} />
+        <div className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-300 to-emerald-400 bg-emerald-400" style={{ width: `${percentage}%` }} />
       </div>
     </div>
   );

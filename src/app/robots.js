@@ -13,6 +13,7 @@ export default async function robots() {
         allow: '/',
         disallow: [
           '/portal/',
+          '/invoice/',
           '/brand-not-found',
           '/api/',
           '/brand-icon/',
@@ -34,6 +35,7 @@ export default async function robots() {
         allow: '/',
         disallow: [
           '/portal/',
+          '/invoice/',
           '/brand-not-found',
           '/api/',
         ],

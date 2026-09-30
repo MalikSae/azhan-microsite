@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2-private-excluded';
 const CACHE_NAME = `azhan-microsite-${self.location.hostname}-${CACHE_VERSION}`;
 
 self.addEventListener('install', (event) => {
@@ -26,12 +26,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
+  const path = new URL(request.url).pathname;
+  if (/^\/(invoice|portal|api)(\/|$)/.test(path)) return;
 
   // Navigasi memakai network-first agar data paket dan status brand tetap baru.
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
+          if (!response.ok || /private|no-store/i.test(response.headers.get('Cache-Control') || '')) return response;
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
@@ -48,7 +51,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request).then((cached) => {
       const update = fetch(request).then((response) => {
-        if (response.ok) {
+        if (response.ok && !/private|no-store/i.test(response.headers.get('Cache-Control') || '')) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }

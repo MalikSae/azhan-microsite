@@ -254,8 +254,8 @@ export default function HomeAppCard({
                   width: isSoldOut
                     ? '100%'
                     : isScarcity
-                    ? `${Math.max(65, seatPercentage)}%`
-                    : `${Math.max(20, seatPercentage)}%`,
+                    ? `${seatPercentage}%`
+                    : `${seatPercentage}%`,
                 }}
               />
             </div>

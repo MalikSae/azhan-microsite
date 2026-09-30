@@ -18,7 +18,7 @@ function captureReferral(request, response) {
 
 export async function middleware(request) {
   // 1. Get hostname without port from Host / X-Forwarded-Host header
-  const rawHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.hostname || '';
+  const rawHost = request.headers.get('host') || request.headers.get('x-forwarded-host') || request.nextUrl.hostname || '';
   const hostname = rawHost.split(':')[0].trim();
 
   const apiBaseUrl = process.env.API_BASE_URL_INTERNAL || 'http://localhost:9090';
@@ -77,6 +77,11 @@ export async function middleware(request) {
       },
     });
     captureReferral(request, response);
+    if (request.nextUrl.pathname.startsWith('/invoice/')) {
+      response.headers.set('Cache-Control', 'private, no-store');
+      response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+      response.headers.set('Referrer-Policy', 'no-referrer');
+    }
     return response;
   } catch (error) {
     // 4. Network error / unexpected error -> rewrite to /brand-not-found

@@ -1,3 +1,4 @@
+import PackageLoadError from '@/components/ui/PackageLoadError';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { getPublicSchedules, getPublicBankAccounts } from '@/lib/api';
@@ -153,13 +154,13 @@ export default async function HomePage() {
 
         {/* Dynamic App Content Client */}
         <div className="w-full flex flex-col bg-white">
-          <HomeAppClient
+          {fetchError ? <PackageLoadError /> : <HomeAppClient
             initialSchedules={sortedSchedules}
             brandName={brandName}
             brandWhatsapp={brandWhatsapp}
             brandLogoUrl={fullLogoUrl}
             brandLegal={brandLegal}
-          />
+          />}
         </div>
 
         {/* Compact App Footer */}
