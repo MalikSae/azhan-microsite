@@ -75,197 +75,57 @@ export default function PortalLoginPage() {
       : `https://wa.me/${cleanWhatsapp}`
     : '#';
 
+  const inputClass = 'h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 text-base text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-60';
+
   return (
-    <main className="min-h-screen bg-[#EEF2F6] pb-20 md:pb-6">
-      {/* Frame Kontainer Utama (Locked to max-w-md, konsisten dengan Home & Detail Paket) */}
-      <div className="max-w-md mx-auto min-h-screen bg-white border-x border-neutral-100 shadow-2xl shadow-neutral-300/30 flex flex-col justify-between relative overflow-hidden">
-        {/* Konten Atas & Form */}
-        <div className="flex flex-col flex-1">
-          {/* Header Image Ka'bah */}
-          <header className="relative w-full overflow-hidden pt-9 pb-13 sm:pt-10 sm:pb-15 px-6 text-white flex flex-col items-center text-center">
-            {/* Background Image & Gradient */}
-            <div className="absolute inset-0 z-0">
-              <img
-                src="/images/bg-kaaba.webp"
-                alt="Latar Belakang Ka'bah"
-                className="w-full h-full object-cover object-center scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/65" />
+    <main className="min-h-dvh bg-[#EEF2F6]">
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-white border-x border-neutral-100">
+        <header className="sticky top-0 z-30 flex h-[54px] shrink-0 items-center gap-2.5 border-b border-neutral-100 bg-white/95 px-4 backdrop-blur-md">
+          <Link href="/" aria-label="Kembali ke beranda" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-50">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" /></svg>
+          </Link>
+          {fullIconUrl ? <img src={fullIconUrl} alt="" className="h-8 w-8 shrink-0 rounded-xl object-contain" /> : <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-light font-bold text-brand">{brandName?.charAt(0) || 'A'}</span>}
+          <div className="min-w-0"><p className="truncate text-sm font-bold text-neutral-900">{brandName}</p><p className="text-[10px] text-neutral-500">Portal Jamaah</p></div>
+        </header>
+
+        <section className="flex-1 px-5 py-8 sm:px-6" aria-labelledby="login-title">
+          <div className="mb-7">
+            <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-light text-brand">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8m8 0l2 2 3-3" /></svg>
+            </span>
+            <h1 id="login-title" className="text-2xl font-bold tracking-tight text-neutral-900">Masuk ke akun Anda</h1>
+            <p className="mt-2 text-sm leading-relaxed text-neutral-500">Pantau perjalanan, pembayaran, dan informasi jamaah dalam satu tempat.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5" aria-busy={isSubmitting}>
+            <div className="space-y-2">
+              <label htmlFor="login-identifier" className="block text-sm font-semibold text-neutral-800">Nomor WhatsApp atau ID Jamaah</label>
+              <input id="login-identifier" name="identifier" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} required disabled={isSubmitting}
+                value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Contoh: 081234567890" className={inputClass} />
             </div>
-
-            {/* Icon Brand Bulat dengan Efek Cahaya Ringan */}
-            <div className="relative z-10 shrink-0 mb-3 flex items-center justify-center">
-              <div className="absolute -inset-3.5 rounded-full bg-white/30 blur-xl pointer-events-none" />
-              <div className="absolute -inset-1.5 rounded-full bg-white/20 blur-md pointer-events-none" />
-
-              <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-                {fullIconUrl ? (
-                  <img
-                    src={fullIconUrl}
-                    alt={brandName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-brand text-white font-extrabold text-2xl flex items-center justify-center">
-                    {brandName?.charAt(0) || 'A'}
-                  </div>
-                )}
+            <div className="space-y-2">
+              <label htmlFor="login-pin" className="block text-sm font-semibold text-neutral-800">PIN akun</label>
+              <div className="relative">
+                <input id="login-pin" name="pin" type={showPin ? 'text' : 'password'} inputMode="numeric" autoComplete="current-password" pattern="[0-9]{6}" maxLength={6} required disabled={isSubmitting}
+                  value={pin} onChange={handlePinChange} placeholder="Masukkan 6 digit PIN" aria-describedby="pin-hint" className={`${inputClass} pr-24`} />
+                <button type="button" onClick={() => setShowPin(!showPin)} aria-label={showPin ? 'Sembunyikan PIN' : 'Tampilkan PIN'} aria-pressed={showPin}
+                  className="absolute right-1 top-0 flex h-12 items-center px-3 text-xs font-semibold text-neutral-600 focus-visible:outline-brand">{showPin ? 'Sembunyikan' : 'Tampilkan'}</button>
               </div>
+              <p id="pin-hint" className="text-xs text-neutral-500">Gunakan PIN yang dibuat saat aktivasi akun.</p>
             </div>
+            {errorMessage && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{errorMessage}</div>}
+            <button type="submit" disabled={isSubmitting} className="flex h-12 w-full items-center justify-center rounded-xl bg-brand text-sm font-bold text-white transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-wait disabled:opacity-60">
+              {isSubmitting ? 'Sedang masuk...' : 'Masuk'}
+            </button>
+          </form>
 
-            {/* Judul & Subteks */}
-            <div className="relative z-10 space-y-1">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-heading drop-shadow-md">
-                Selamat Datang
-              </h1>
-              <p className="text-xs sm:text-sm text-white/95 font-medium drop-shadow-sm">
-                Di Portal Jamaah {brandName}
-              </p>
-            </div>
-          </header>
-
-          {/* Form Sheet: Full Width dengan Radius Sudut Kiri & Kanan Atas */}
-          <section className="w-full bg-white rounded-t-3xl sm:rounded-t-[2rem] -mt-6 relative z-10 px-6 sm:px-8 pt-7 pb-6 flex-1 flex flex-col justify-between shadow-xs">
-            <div className="w-full max-w-[340px] mx-auto flex flex-col">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Field 1: Nomor WhatsApp (Default) dengan opsi ID Jamaah */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="identifier" className="block text-xs font-semibold text-neutral-700">
-                      Nomor WhatsApp
-                    </label>
-                    <span className="text-[10.5px] text-neutral-400 font-normal">
-                      atau ID Jamaah
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                    </div>
-                    <input
-                      id="identifier"
-                      type="text"
-                      inputMode="text"
-                      autoComplete="tel"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="081234567890"
-                      required
-                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all bg-neutral-50/40 focus:bg-white"
-                    />
-                  </div>
-                </div>
-
-                {/* Field 2: PIN Portal dengan Icon Key-Round & Toggle Password */}
-                <div>
-                  <label htmlFor="pin" className="block text-xs font-semibold text-neutral-700 mb-1.5">
-                    PIN Portal
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z" />
-                        <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" />
-                      </svg>
-                    </div>
-                    <input
-                      id="pin"
-                      type={showPin ? 'text' : 'password'}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={6}
-                      value={pin}
-                      onChange={handlePinChange}
-                      placeholder="6 digit PIN"
-                      required
-                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all font-mono bg-neutral-50/40 focus:bg-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPin(!showPin)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 focus:outline-none p-0.5 cursor-pointer"
-                      aria-label={showPin ? 'Sembunyikan PIN' : 'Tampilkan PIN'}
-                    >
-                      {showPin ? (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {errorMessage && (
-                  <p className="text-xs text-danger-600 font-medium pt-0.5">
-                    {errorMessage}
-                  </p>
-                )}
-
-                {/* Tombol Login Timbul dengan Efek Gradient Ringan & Panah */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    background: 'linear-gradient(180deg, var(--brand-primary, #990000) 0%, color-mix(in srgb, var(--brand-primary, #990000) 78%, black) 100%)',
-                  }}
-                  className="w-full py-3 px-4 text-sm font-bold text-white rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.32),0_4px_14px_rgba(0,0,0,0.2)] hover:brightness-105 active:brightness-95 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
-                >
-                  {isSubmitting ? (
-                    <span>Memproses...</span>
-                  ) : (
-                    <>
-                      <span>Masuk</span>
-                      <svg className="w-4 h-4 text-white/90 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
-                    </>
-                  )}
-                </button>
-              </form>
-
-              {/* CTA Bantuan WhatsApp & Navigasi Kembali ke Home */}
-              <div className="pt-6 text-center space-y-3.5">
-                <a
-                  href={waUrl}
-                  target={cleanWhatsapp ? '_blank' : '_self'}
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 transition-colors"
-                >
-                  <svg className="w-4 h-4 fill-current text-[#25D366]" viewBox="0 0 24 24">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
-                  </svg>
-                  <span>Butuh bantuan? Hubungi kami via WhatsApp</span>
-                </a>
-
-                <div>
-                  <Link
-                    href="/"
-                    className="inline-flex items-center justify-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-700 transition-colors py-1 font-medium"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    <span>Kembali ke Beranda</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        {/* Footer Copyright */}
-        <footer className="pt-6 pb-4 text-center border-t border-neutral-100 mt-auto px-6">
-          <p className="text-[11px] text-neutral-400">
-            &copy; {new Date().getFullYear()} {brandName}. Seluruh hak cipta dilindungi.
-          </p>
-        </footer>
+          <div className="mt-7 border-t border-neutral-100 pt-5">
+            <h2 className="text-sm font-semibold text-neutral-800">Belum punya PIN atau lupa PIN?</h2>
+            <p className="mt-1 text-xs leading-relaxed text-neutral-500">Hubungi admin untuk bantuan akses atau mendapatkan link aktivasi akun.</p>
+            {cleanWhatsapp && <a href={waUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand">Hubungi admin via WhatsApp <span aria-hidden="true">↗</span></a>}
+          </div>
+        </section>
+        <footer className="px-5 pb-6 pt-3 text-center text-xs text-neutral-400">© {new Date().getFullYear()} {brandName}</footer>
       </div>
     </main>
   );
