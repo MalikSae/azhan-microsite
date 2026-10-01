@@ -1,4 +1,5 @@
 'use client';
+import { mediaUrl } from '@/lib/mediaUrl';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -186,9 +187,8 @@ function AktivasiContent() {
   const isMatch = isPinComplete && isConfirmComplete && portalPin === confirmPin;
   const isMismatch = isConfirmComplete && portalPin !== confirmPin;
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const targetIcon = brandIcon || brandLogo;
-  const fullIconUrl = targetIcon ? (targetIcon.startsWith('http') ? targetIcon : `${apiBaseUrl}${targetIcon}`) : null;
+  const fullIconUrl = targetIcon ? mediaUrl(targetIcon) : null;
 
   return (
     <main className="min-h-screen bg-[#EEF2F6] pb-20 md:pb-6">
@@ -277,7 +277,7 @@ function AktivasiContent() {
                   </div>
                 )}
 
-                {status === 'error' && <div role="alert" className="space-y-3 text-sm"><p>Link belum dapat diperiksa. Periksa koneksi lalu coba lagi.</p><button type="button" className="min-h-11 px-4 border rounded-xl" onClick={() => setRetry(n => n + 1)}>Coba lagi</button></div>}
+                {status === 'error' && <div role="alert" className="space-y-3 text-sm"><p>Link belum dapat diperiksa. Periksa koneksi lalu coba lagi.</p><button type="button" className="px-4 py-2 text-sm border rounded-xl" onClick={() => setRetry(n => n + 1)}>Coba lagi</button></div>}
                 {/* 2. STATE INVALID */}
                 {status === 'invalid' && (
                   <div className="text-center py-2 space-y-4">
@@ -305,7 +305,7 @@ function AktivasiContent() {
                         value={tanggalLahir}
                         onChange={(e) => setTanggalLahir(e.target.value)}
                         required
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all bg-neutral-50/40 focus:bg-white"
+                        className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all bg-neutral-50/40 focus:bg-white"
                       />
                     </div>
 
@@ -344,7 +344,7 @@ function AktivasiContent() {
                           onChange={handlePinChange}
                           placeholder="6 digit PIN"
                           required
-                          className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all font-mono bg-neutral-50/40 focus:bg-white"
+                          className="w-full h-11 pl-10 pr-10 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all font-mono bg-neutral-50/40 focus:bg-white"
                         />
                         <button
                           type="button"
@@ -417,7 +417,7 @@ function AktivasiContent() {
                           onChange={handleConfirmPinChange}
                           placeholder="6 digit PIN"
                           required
-                          className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all font-mono bg-neutral-50/40 focus:bg-white"
+                          className="w-full h-11 pl-10 pr-10 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all font-mono bg-neutral-50/40 focus:bg-white"
                         />
                         <button
                           type="button"

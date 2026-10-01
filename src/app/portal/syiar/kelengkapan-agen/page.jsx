@@ -141,7 +141,7 @@ export default function KelengkapanAgenPage() {
             onChange={(e) => setDomisili(e.target.value)}
             maxLength={100}
             placeholder="Kota/kabupaten tempat tinggal"
-            className="w-full px-3 py-2.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 focus:outline-hidden focus:border-brand"
+            className="w-full h-11 px-3 rounded-xl border border-neutral-300 text-sm text-neutral-900 focus:outline-hidden focus:border-brand"
           />
         </div>
 

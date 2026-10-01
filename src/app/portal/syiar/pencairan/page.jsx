@@ -9,7 +9,7 @@ import { formatRupiah } from '@/lib/portalFormat';
 import Badge from '@/components/ui/Badge';
 
 const inputClass =
-  'w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand bg-white';
+  'w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand bg-white';
 
 const STATUS = {
   pending: { label: 'Diproses', variant: 'pending' },

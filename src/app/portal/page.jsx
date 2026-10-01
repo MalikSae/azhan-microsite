@@ -1,4 +1,5 @@
 'use client';
+import { mediaUrl } from '@/lib/mediaUrl';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -160,18 +161,13 @@ export default function PortalDashboardPage() {
   if (hasError) {
     return (
       <div className="flex-1 flex items-center justify-center p-6 text-sm text-neutral-500 text-center">
-        Gagal memuat data. <button type="button" className="underline min-h-11 px-3" onClick={() => window.location.reload()}>Coba lagi</button>
+        Gagal memuat data. <button type="button" className="underline px-3 py-2" onClick={() => window.location.reload()}>Coba lagi</button>
       </div>
     );
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const targetIcon = brandIcon || brandLogo;
-  const fullIconUrl = targetIcon
-    ? targetIcon.startsWith('http')
-      ? targetIcon
-      : `${apiBaseUrl}${targetIcon}`
-    : null;
+  const fullIconUrl = targetIcon ? mediaUrl(targetIcon) : null;
 
   // 1. Perhitungan Hari Keberangkatan (H-)
   let isUpcoming = false;

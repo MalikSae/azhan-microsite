@@ -1,4 +1,5 @@
 'use client';
+import { mediaUrl } from '@/lib/mediaUrl';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -64,9 +65,8 @@ export default function PortalLoginPage() {
     );
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const targetIcon = brandIcon || brandLogo;
-  const fullIconUrl = targetIcon ? (targetIcon.startsWith('http') ? targetIcon : `${apiBaseUrl}${targetIcon}`) : null;
+  const fullIconUrl = targetIcon ? mediaUrl(targetIcon) : null;
 
   const cleanWhatsapp = (brandWhatsapp || '').replace(/[^0-9]/g, '');
   const waUrl = cleanWhatsapp
@@ -75,7 +75,7 @@ export default function PortalLoginPage() {
       : `https://wa.me/${cleanWhatsapp}`
     : '#';
 
-  const inputClass = 'h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 text-base text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-60';
+  const inputClass = 'h-11 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-60';
 
   return (
     <main className="min-h-dvh bg-[#EEF2F6]">
@@ -109,12 +109,12 @@ export default function PortalLoginPage() {
                 <input id="login-pin" name="pin" type={showPin ? 'text' : 'password'} inputMode="numeric" autoComplete="current-password" pattern="[0-9]{6}" maxLength={6} required disabled={isSubmitting}
                   value={pin} onChange={handlePinChange} placeholder="Masukkan 6 digit PIN" aria-describedby="pin-hint" className={`${inputClass} pr-24`} />
                 <button type="button" onClick={() => setShowPin(!showPin)} aria-label={showPin ? 'Sembunyikan PIN' : 'Tampilkan PIN'} aria-pressed={showPin}
-                  className="absolute right-1 top-0 flex h-12 items-center px-3 text-xs font-semibold text-neutral-600 focus-visible:outline-brand">{showPin ? 'Sembunyikan' : 'Tampilkan'}</button>
+                  className="absolute right-1 inset-y-0 flex items-center px-3 text-xs font-semibold text-neutral-600 focus-visible:outline-brand">{showPin ? 'Sembunyikan' : 'Tampilkan'}</button>
               </div>
               <p id="pin-hint" className="text-xs text-neutral-500">Gunakan PIN yang dibuat saat aktivasi akun.</p>
             </div>
             {errorMessage && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{errorMessage}</div>}
-            <button type="submit" disabled={isSubmitting} className="flex h-12 w-full items-center justify-center rounded-xl bg-brand text-sm font-bold text-white transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-wait disabled:opacity-60">
+            <button type="submit" disabled={isSubmitting} className="flex w-full items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-bold text-white transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-wait disabled:opacity-60">
               {isSubmitting ? 'Sedang masuk...' : 'Masuk'}
             </button>
           </form>
