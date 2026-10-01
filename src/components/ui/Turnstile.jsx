@@ -6,14 +6,14 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 // kosong ('') berarti belum lolos, kedaluwarsa, atau error. Token hanya bisa
 // dipakai sekali, jadi parent memanggil ref.reset() setelah submit gagal.
 //
-// Tanpa NEXT_PUBLIC_TURNSTILE_SITE_KEY:
-// - development: token 'dev-turnstile-token' (backend tanpa TURNSTILE_SECRET_KEY
-//   menerimanya), supaya pengembangan lokal tidak butuh Cloudflare;
-// - production: tidak ada token sama sekali dan pesan konfigurasi tampil,
-//   sehingga salah konfigurasi langsung terlihat, bukan diam-diam lolos.
+// Keputusan produk: Turnstile opsional, dipasang bila terbukti banyak bot.
+// Tanpa NEXT_PUBLIC_TURNSTILE_SITE_KEY: tidak ada widget maupun teks, dan token
+// penanda dikirim agar tombol submit tidak terkunci. Backend tanpa
+// TURNSTILE_SECRET_KEY melewati verifikasi (lihat erp-azhan selfbooking/turnstile.go).
+// Saat mengaktifkan, isi kedua kunci (site key di sini, secret key di backend).
 
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-const DEV_TOKEN = 'dev-turnstile-token';
+const TOKEN_NONAKTIF = 'turnstile-nonaktif';
 
 let scriptPromise = null;
 function loadScript() {
@@ -43,7 +43,7 @@ const Turnstile = forwardRef(function Turnstile(
   const widgetIdRef = useRef(null);
   const onTokenRef = useRef(onToken);
   const [loadError, setLoadError] = useState(false);
-  const devMode = !siteKey && process.env.NODE_ENV !== 'production';
+  const nonaktif = !siteKey;
 
   useEffect(() => {
     onTokenRef.current = onToken;
@@ -51,17 +51,17 @@ const Turnstile = forwardRef(function Turnstile(
 
   useImperativeHandle(ref, () => ({
     reset() {
-      if (devMode) return;
+      if (nonaktif) return;
       onTokenRef.current?.('');
       if (window.turnstile && widgetIdRef.current !== null) {
         window.turnstile.reset(widgetIdRef.current);
       }
     },
-  }), [devMode]);
+  }), [nonaktif]);
 
   useEffect(() => {
-    if (!siteKey) {
-      onTokenRef.current?.(devMode ? DEV_TOKEN : '');
+    if (nonaktif) {
+      onTokenRef.current?.(TOKEN_NONAKTIF);
       return undefined;
     }
     let cancelled = false;
@@ -85,15 +85,9 @@ const Turnstile = forwardRef(function Turnstile(
       }
       widgetIdRef.current = null;
     };
-  }, [siteKey, action, devMode]);
+  }, [siteKey, action, nonaktif]);
 
-  if (!siteKey) {
-    return devMode ? (
-      <p className="text-[11px] text-neutral-400">Verifikasi keamanan nonaktif (mode pengembangan).</p>
-    ) : (
-      <p className="text-xs text-danger-700">Verifikasi keamanan belum dikonfigurasi. Silakan hubungi admin.</p>
-    );
-  }
+  if (nonaktif) return null;
 
   return (
     <div className="min-h-[65px]">

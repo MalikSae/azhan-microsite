@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
+import { apiBase } from '@/lib/apiBase';
+const API_BASE_URL = apiBase();
 
 const getPortalToken = () => {
   if (typeof window === 'undefined') return null;
