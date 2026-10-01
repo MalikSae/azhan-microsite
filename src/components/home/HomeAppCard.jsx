@@ -1,8 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+function PromoCountdown({ until }) {
+  const deadline = until ? Date.parse(`${String(until).slice(0, 10)}T23:59:59.999+07:00`) : NaN;
+  const [remaining, setRemaining] = useState(null);
+  useEffect(() => {
+    if (!Number.isFinite(deadline)) return;
+    const tick = () => setRemaining(Math.max(0, deadline - Date.now()));
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [deadline]);
+  if (!Number.isFinite(deadline) || remaining === null || remaining <= 0) return null;
+  const seconds = Math.floor(remaining / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const pad = (value) => String(value).padStart(2, '0');
+  return (
+    <span title="Batas promo pukul 23.59 WIB" className="absolute top-2.5 left-2.5 z-10 rounded-md bg-rose-600 px-2 py-1 text-[9px] font-bold text-white shadow-xs tabular-nums">
+      Promo {days > 0 ? `${days}h ` : ''}{pad(hours)}:{pad(minutes)}:{pad(seconds % 60)}
+    </span>
+  );
+}
 function formatRupiah(number) {
   if (!number) return 'Rp 0';
   return new Intl.NumberFormat('id-ID', {
@@ -119,11 +141,7 @@ export default function HomeAppCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/15 pointer-events-none" />
 
         {/* Badge Promo (jika ada) */}
-        {isPromo && (
-          <div className="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 bg-[#F43F5E] text-white text-[9px] font-bold rounded-full shadow-xs uppercase tracking-wider">
-            PROMO
-          </div>
-        )}
+        {isPromo && schedule.promo_until && <PromoCountdown until={schedule.promo_until} />}
 
         {/* Departure Date & Duration */}
         {departureDateText && (
@@ -172,7 +190,7 @@ export default function HomeAppCard({
 
             {/* Direct indicator */}
             {isDirect && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-light text-brand shrink-0">
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-600 text-white shrink-0">
                 Direct
               </span>
             )}
@@ -183,7 +201,7 @@ export default function HomeAppCard({
             {/* Mekkah */}
             <div className="flex items-center justify-between gap-1 leading-tight text-neutral-700">
               <span className="font-semibold text-neutral-800 truncate flex-1 pr-1" title={hotelMekkahName}>
-                {hotelMekkahName}
+                <span className="font-normal text-neutral-500">Makkah: </span>{hotelMekkahName}
               </span>
               {(hotelMekkahStars > 0 || hotelMekkahDist != null) && (
                 <div className="flex items-center gap-1 shrink-0 text-[10px]">
@@ -204,7 +222,7 @@ export default function HomeAppCard({
             {/* Madinah */}
             <div className="flex items-center justify-between gap-1 leading-tight text-neutral-700">
               <span className="font-semibold text-neutral-800 truncate flex-1 pr-1" title={hotelMadinahName}>
-                {hotelMadinahName}
+                <span className="font-normal text-neutral-500">Madinah: </span>{hotelMadinahName}
               </span>
               {(hotelMadinahStars > 0 || hotelMadinahDist != null) && (
                 <div className="flex items-center gap-1 shrink-0 text-[10px]">
@@ -265,13 +283,16 @@ export default function HomeAppCard({
         {/* ━━━ BOTTOM SECTION (HARGA & INDIKATOR KLIK) ━━━ */}
         <div className="flex items-end justify-between pt-1">
           <div className="flex flex-col">
-            <span className="text-[9.5px] text-neutral-400 font-medium leading-none">
-              Mulai dari
-            </span>
+            {!hasDiscount && <span className="text-[9.5px] text-neutral-400 font-medium leading-none">Mulai dari</span>}
             {hasDiscount && (
-              <span className="text-[10px] text-rose-500 line-through font-semibold leading-none mt-1">
-                {formatRupiah(originalPrice)}
-              </span>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-rose-500 line-through font-semibold leading-none">
+                  {formatRupiah(originalPrice)}
+                </span>
+                <span className="rounded bg-orange-500 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+                  Hemat {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 3 }).format((originalPrice - price) / 1000000)} juta
+                </span>
+              </div>
             )}
             <div className="text-[15.5px] font-extrabold text-neutral-900 group-hover:text-brand tracking-tight leading-tight mt-0.5 transition-colors">
               {formatRupiah(price)}
