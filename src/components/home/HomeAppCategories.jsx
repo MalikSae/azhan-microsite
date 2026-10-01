@@ -89,7 +89,7 @@ export default function HomeAppCategories({ activeCategory = 'all', onSelectCate
             className="box-border w-fit shrink-0 h-fit flex flex-col gap-[6px] justify-start items-center cursor-pointer group focus:outline-none transition-transform active:scale-95"
           >
             <div
-              className={`box-border w-[46px] h-[46px] shrink-0 flex flex-col gap-0 justify-center items-center rounded-[16px] transition-all ${
+              className={`box-border w-[46px] h-[46px] shrink-0 flex flex-col gap-0 justify-center items-center rounded-2xl transition-all ${
                 isActive
                   ? 'bg-brand-light text-brand shadow-xs scale-105 border border-brand/20'
                   : cat.isPromo

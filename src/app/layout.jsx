@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/lib/mediaUrl';
 import { serializeJsonLd } from '@/lib/packagePolicy.mjs';
 import { headers } from 'next/headers';
 import { DM_Sans } from 'next/font/google';
@@ -9,6 +10,15 @@ const dmSans = DM_Sans({
   weight: ['400', '500', '600', '700', '800'],
   variable: '--font-dm-sans',
 });
+
+// Field memakai font 14px (sama dengan body). maximumScale 1 mencegah iOS
+// Safari zoom otomatis saat field < 16px disentuh; pinch-zoom manual tetap
+// berfungsi di iOS.
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
 
 export async function generateMetadata() {
   const headerList = await headers();
@@ -133,8 +143,8 @@ export default async function RootLayout({ children }) {
     }
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
-  const fullLogoUrl = brandLogo ? (brandLogo.startsWith('http') ? brandLogo : `${apiBaseUrl}${brandLogo}`) : undefined;
+  // JSON-LD butuh URL absolut: pakai domain brand, bukan host API.
+  const fullLogoUrl = brandLogo ? mediaUrl(brandLogo, baseUrl) : undefined;
 
   // Schema.org TravelAgency / LocalBusiness
   const travelAgencySchema = {

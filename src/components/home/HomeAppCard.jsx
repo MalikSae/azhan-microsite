@@ -1,4 +1,5 @@
 'use client';
+import { mediaUrl } from '@/lib/mediaUrl';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -83,9 +84,8 @@ export default function HomeAppCard({
   const isScarcity = seatSisa <= 10 && seatSisa > 0;
 
   // Maskapai
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const airlineLogoUrl = schedule?.maskapai?.logo_url
-    ? (schedule.maskapai.logo_url.startsWith('http') ? schedule.maskapai.logo_url : `${apiBaseUrl}${schedule.maskapai.logo_url}`)
+    ? mediaUrl(schedule.maskapai.logo_url)
     : null;
   const airlineName = schedule.maskapai?.name || 'Maskapai';
   const isDirect = Boolean(schedule.is_direct_flight);
@@ -105,7 +105,7 @@ export default function HomeAppCard({
   const getCardImage = () => {
     const rawUrl = schedule.brosur_thumb_url || schedule.brosur_url;
     if (rawUrl) {
-      return rawUrl.startsWith('http') ? rawUrl : `${apiBaseUrl}${rawUrl}`;
+      return mediaUrl(rawUrl);
     }
     const nameLower = (schedule.jadwal_nama || '').toLowerCase();
     if (nameLower.includes('turki') || nameLower.includes('plus')) {
@@ -129,7 +129,7 @@ export default function HomeAppCard({
   return (
     <Link
       href={`/paket/${packageSlug}`}
-      className="bg-white border border-neutral-200/80 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md hover:border-brand/40 transition-all duration-300 flex flex-col justify-between group no-underline"
+      className="bg-white border border-neutral-200/80 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group no-underline"
     >
       {/* ━━━ TOP SECTION: GAMBAR FULL WIDTH (RASIO 1:1) ━━━ */}
       <div className="relative w-full aspect-square overflow-hidden bg-neutral-900">
@@ -146,7 +146,7 @@ export default function HomeAppCard({
         {/* Departure Date & Duration */}
         {departureDateText && (
           <div className="absolute bottom-2.5 left-2.5 z-10">
-            <span className="bg-black/80 backdrop-blur-xs text-white text-[9.5px] font-bold px-2 py-0.5 rounded-[6px] flex items-center gap-1.5 border border-white/10 shadow-xs">
+            <span className="bg-black/80 backdrop-blur-xs text-white text-[9.5px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1.5 border border-white/10 shadow-xs">
               <svg className="w-3 h-3 text-white/90 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                 <line x1="16" y1="2" x2="16" y2="6" />

@@ -1,4 +1,5 @@
 'use client';
+import { mediaUrl } from '@/lib/mediaUrl';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -7,9 +8,8 @@ import SeatProgressBar from './SeatProgressBar';
 export default function PackageCard({ schedule, brandWhatsapp, brandName, brandLogoUrl, compact = false }) {
   const [airlineLogoError, setAirlineLogoError] = useState(false);
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const airlineLogoUrl = schedule?.maskapai?.logo_url 
-    ? (schedule.maskapai.logo_url.startsWith('http') ? schedule.maskapai.logo_url : `${apiBaseUrl}${schedule.maskapai.logo_url}`)
+    ? mediaUrl(schedule.maskapai.logo_url)
     : null;
 
   if (!schedule) return null;

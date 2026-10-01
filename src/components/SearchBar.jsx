@@ -13,7 +13,7 @@ export default function SearchBar({ value, onChange, placeholder = "Cari nama pa
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full pl-10 pr-4 py-2.5 text-sm placeholder:text-neutral-400 text-neutral-800 focus:outline-none transition-all ${variant === "borderless" ? "bg-transparent border-0 focus:ring-0 shadow-none" : "bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent shadow-sm"} ${className}`}
+        className={`w-full h-11 pl-10 pr-4 text-sm placeholder:text-neutral-400 text-neutral-800 focus:outline-none transition-all ${variant === "borderless" ? "bg-transparent border-0 focus:ring-0 shadow-none" : "bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent shadow-sm"} ${className}`}
       />
       {value && (
         <button

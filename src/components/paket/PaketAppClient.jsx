@@ -196,7 +196,7 @@ export default function PaketAppClient({
   return (
     <div className="w-full flex flex-col gap-[14px]">
       <label className="text-sm font-semibold">Kategori paket
-        <select aria-label="Kategori paket" value={activeCategory} onChange={e => setActiveCategory(e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-neutral-200 px-3">
+        <select aria-label="Kategori paket" value={activeCategory} onChange={e => setActiveCategory(e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-neutral-200 px-3 text-sm">
           <option value="all">Semua kategori</option>
           <option value="promo">Promo</option>
           {[...new Map(initialSchedules.filter(s => s.category).map(s => [String(s.category.id), s.category])).values()].map(c => <option key={c.id} value={c.slug || String(c.id)}>{c.name}</option>)}
@@ -205,7 +205,7 @@ export default function PaketAppClient({
 
 
       {/* ━━━ Search Bar (Mobile App Style - sama persis dengan Home) ━━━ */}
-      <div className="box-border w-full h-[38px] shrink-0 flex flex-row gap-[10px] p-[0px_12px] justify-between items-center bg-[#FFFFFF] border border-[#ECEEF5] rounded-[14px] shadow-2xs">
+      <div className="box-border w-full h-11 shrink-0 flex flex-row gap-2.5 px-3 justify-between items-center bg-[#FFFFFF] border border-[#ECEEF5] rounded-xl shadow-2xs">
         <div className="flex items-center gap-[8px] flex-1 min-w-0">
           <svg
             viewBox="0 0 24 24"
@@ -223,7 +223,7 @@ export default function PaketAppClient({
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Cari paket, maskapai, atau hotel"
             placeholder="Cari paket umroh, maskapai, hotel..."
-            className="w-full bg-transparent text-[11px] text-[#1A1A2E] placeholder:text-[#6B7280] font-medium focus:outline-none"
+            className="w-full bg-transparent text-sm text-[#1A1A2E] placeholder:text-[#6B7280] font-medium focus:outline-none"
           />
           {searchQuery && (
             <button
@@ -243,7 +243,7 @@ export default function PaketAppClient({
           <button
             type="button"
             onClick={() => setShowSort((p) => !p)}
-            className="box-border w-[26px] shrink-0 h-[26px] flex flex-row gap-0 justify-center items-center bg-brand-light text-brand rounded-[8px] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+            className="box-border w-[26px] shrink-0 h-[26px] flex flex-row gap-0 justify-center items-center bg-brand-light text-brand rounded-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer"
             title={`Urutkan: ${currentSortObj?.label}`}
           >
             <svg
@@ -306,7 +306,7 @@ export default function PaketAppClient({
               key={chip.id}
               type="button"
               onClick={() => setActiveChip(chip.id)}
-              className={`box-border w-fit shrink-0 h-fit flex flex-row gap-[4px] p-[6px_12px] justify-start items-center rounded-[999px] text-[10.5px] transition-all cursor-pointer border ${
+              className={`box-border w-fit shrink-0 h-fit flex flex-row gap-[4px] p-[6px_12px] justify-start items-center rounded-full text-[10.5px] transition-all cursor-pointer border ${
                 isActive
                   ? chip.activeClass || 'bg-brand text-white font-bold shadow-xs border-brand'
                   : 'bg-[#FFFFFF] border-[#ECEEF5] text-[#6B7280] font-medium hover:bg-neutral-50 hover:text-neutral-900'

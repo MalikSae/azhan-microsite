@@ -1,4 +1,5 @@
 'use client';
+import { mediaUrl } from '@/lib/mediaUrl';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
@@ -151,7 +152,7 @@ function PackageAutocompleteDropdown({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Cari paket, maskapai, tanggal..."
-                className="w-full px-4 py-2.5 pl-10 rounded-xl border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 outline-none focus:outline-none focus:ring-0 focus:border-brand hover:border-brand transition-colors"
+                className="w-full h-11 px-4 pl-10 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 placeholder:text-neutral-400 outline-none focus:outline-none focus:ring-0 focus:border-brand hover:border-brand transition-colors"
               />
               {searchTerm && (
                 <button
@@ -250,9 +251,8 @@ function CompareRow({ label, left, right, isWinnerLeft = false, isWinnerRight = 
 // Komponen Tampilan Maskapai
 function AirlineDisplay({ schedule }) {
   if (!schedule) return '-';
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const logoUrl = schedule?.maskapai?.logo_url 
-    ? (schedule.maskapai.logo_url.startsWith('http') ? schedule.maskapai.logo_url : `${apiBaseUrl}${schedule.maskapai.logo_url}`)
+    ? mediaUrl(schedule.maskapai.logo_url)
     : null;
 
   return (

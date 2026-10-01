@@ -36,8 +36,8 @@ export default function HomePackageSearch({
               options={[{ value: 'all', label: 'Semua paket' }, { value: 'promo', label: 'Promo' }]} />
           </div>
           <div className="flex items-center justify-between">
-            <button type="button" disabled={!activeCount && !searchQuery} onClick={onReset} className="min-h-11 text-sm font-semibold text-neutral-600 disabled:opacity-40">Reset</button>
-            <button type="button" onClick={() => setOpen(false)} className="min-h-11 px-3 text-sm font-semibold text-brand">Lihat hasil</button>
+            <button type="button" disabled={!activeCount && !searchQuery} onClick={onReset} className="py-2 text-sm font-semibold text-neutral-600 disabled:opacity-40">Reset</button>
+            <button type="button" onClick={() => setOpen(false)} className="px-3 py-2 text-sm font-semibold text-brand">Lihat hasil</button>
           </div>
         </div>
       )}

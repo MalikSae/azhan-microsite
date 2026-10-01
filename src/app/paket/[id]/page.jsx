@@ -1,5 +1,6 @@
 import { getScheduleForCurrentBrand as getSchedule } from '@/lib/publicSchedule';
 import { serializeJsonLd } from '@/lib/packagePolicy.mjs';
+import { mediaUrl } from '@/lib/mediaUrl';
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
@@ -38,12 +39,8 @@ export async function generateMetadata({ params }) {
 
   const title = `Paket Umroh ${schedule.jadwal_nama} | ${brandName}`;
   const description = `Paket Umroh ${schedule.jadwal_nama} bersama ${brandName}. Keberangkatan dari ${kotaBerangkat} menuju ${destinations}. Mulai dari Rp ${(schedule.harga_quad || 0).toLocaleString('id-ID')}. Pesan sekarang kursi terbatas!`;
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
-  const ogImageUrl = schedule.brosur_thumb_url
-    ? schedule.brosur_thumb_url.startsWith('http')
-      ? schedule.brosur_thumb_url
-      : `${apiBaseUrl}${schedule.brosur_thumb_url}`
-    : '/hero-makkah.jpg';
+  // Relatif: diselesaikan ke domain brand oleh metadataBase di layout.
+  const ogImageUrl = schedule.brosur_thumb_url ? mediaUrl(schedule.brosur_thumb_url) : '/hero-makkah.jpg';
 
   return {
     title,
@@ -127,8 +124,7 @@ export default async function PackageDetailPage({ params }) {
     isCutoff = diffDays < 14;
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
-  const fullLogoUrl = brandLogo && brandLogo.startsWith('/') ? `${apiBaseUrl}${brandLogo}` : brandLogo;
+  const fullLogoUrl = mediaUrl(brandLogo);
 
   // Structured Data (JSON-LD)
   const rawHost = headerList.get('x-forwarded-host') || headerList.get('host') || 'hana.azhan.test';
@@ -138,9 +134,7 @@ export default async function PackageDetailPage({ params }) {
   const slug = `${schedule.id}-${(schedule.jadwal_nama || 'paket').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   const canonicalUrl = `${baseUrl}/paket/${slug}`;
   const packageImageUrl = schedule.brosur_thumb_url
-    ? schedule.brosur_thumb_url.startsWith('http')
-      ? schedule.brosur_thumb_url
-      : `${apiBaseUrl}${schedule.brosur_thumb_url}`
+    ? mediaUrl(schedule.brosur_thumb_url, baseUrl)
     : `${baseUrl}/hero-makkah.jpg`;
 
   const durationDays =

@@ -1,5 +1,6 @@
 "use client";
 
+import { apiBase } from "@/lib/apiBase";
 import { useEffect } from "react";
 
 export default function ViewTracker({ scheduleId }) {
@@ -11,7 +12,7 @@ export default function ViewTracker({ scheduleId }) {
     const hasViewed = sessionStorage.getItem(`viewed_${scheduleId}`);
     if (hasViewed) return;
 
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:9090";
+    const apiBaseUrl = apiBase();
     fetch(`${apiBaseUrl}/api/schedules/${scheduleId}/view`, {
       method: "POST",
     })
