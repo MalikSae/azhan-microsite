@@ -48,7 +48,7 @@ export default async function InvoicePage({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 print:bg-white text-neutral-800">
+    <div className="min-h-screen bg-white text-neutral-800">
       <DigitalInvoiceView invoice={invoice} />
     </div>
   );
