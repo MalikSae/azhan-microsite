@@ -23,9 +23,15 @@ export default function CustomDropdown({
         setIsOpen(false);
       }
     }
+    // Esc menutup daftar pilihan.
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setIsOpen(false);
+    }
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -54,16 +60,16 @@ export default function CustomDropdown({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full px-3.5 py-2.5 rounded-xl border text-left flex items-center justify-between text-xs sm:text-sm transition-all shadow-2xs cursor-pointer ${
+        className={`w-full h-11 px-3.5 rounded-xl border text-left flex items-center justify-between text-sm transition-colors cursor-pointer ${
           disabled
             ? 'bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed'
-            : 'bg-white hover:border-neutral-400'
+            : 'bg-white hover:border-neutral-300'
         } ${
           error
             ? 'border-red-500 focus:border-red-500'
             : isOpen
-            ? 'border-brand ring-2 ring-brand/10'
-            : 'border-neutral-300 focus:border-brand'
+            ? 'border-brand'
+            : 'border-neutral-200 focus:border-brand focus:outline-none'
         }`}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
@@ -83,7 +89,7 @@ export default function CustomDropdown({
               {selectedOption ? selectedOption.label : placeholder}
             </span>
             {selectedOption?.sublabel && (
-              <span className="block text-[11px] text-neutral-400 truncate">
+              <span className="block text-xs text-neutral-400 truncate">
                 {selectedOption.sublabel}
               </span>
             )}
@@ -105,7 +111,7 @@ export default function CustomDropdown({
       {/* Dropdown Menu */}
       {isOpen && !disabled && (
         <div className="absolute z-50 w-full left-0 mt-1.5 bg-white border border-neutral-200/90 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
-          <ul className="max-h-60 overflow-y-auto py-1 text-xs sm:text-sm divide-y divide-neutral-100">
+          <ul role="listbox" className="max-h-60 overflow-y-auto py-1 text-sm divide-y divide-neutral-100">
             {options.length === 0 ? (
               <li className="px-3.5 py-3 text-center text-xs text-neutral-400">
                 Tidak ada pilihan
@@ -114,11 +120,11 @@ export default function CustomDropdown({
               options.map((opt) => {
                 const isSelected = String(opt.value) === String(value);
                 return (
-                  <li key={opt.value}>
+                  <li key={opt.value} role="option" aria-selected={isSelected}>
                     <button
                       type="button"
                       onClick={() => handleSelect(opt.value)}
-                      className={`w-full text-left px-3.5 py-2.5 transition-colors flex items-center justify-between gap-2.5 cursor-pointer ${
+                      className={`w-full min-h-11 text-left px-3.5 py-2.5 transition-colors flex items-center justify-between gap-2.5 cursor-pointer ${
                         isSelected
                           ? 'bg-neutral-50 text-neutral-900 font-bold'
                           : 'text-neutral-700 hover:bg-neutral-50 font-normal'
@@ -135,7 +141,7 @@ export default function CustomDropdown({
                         <div className="truncate min-w-0 flex-1">
                           <span className="block truncate">{opt.label}</span>
                           {opt.sublabel && (
-                            <span className="block text-[11px] text-neutral-400 truncate">
+                            <span className="block text-xs text-neutral-400 truncate">
                               {opt.sublabel}
                             </span>
                           )}
@@ -166,7 +172,7 @@ export default function CustomDropdown({
         </div>
       )}
 
-      {error && <p className="text-[11px] font-semibold text-red-600 mt-1">{error}</p>}
+      {error && <p className="text-xs font-semibold text-red-600 mt-1">{error}</p>}
     </div>
   );
 }
