@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import BookingWizard from '@/components/booking/BookingWizard';
+import { mediaUrl } from '@/lib/mediaUrl';
 
 async function getBankAccounts(brandId) {
   if (!brandId) return [];
@@ -26,6 +27,7 @@ export default async function BookPackagePage({ params, searchParams }) {
   const brandPpiu = headerList.get('x-brand-ppiu') || '';
   const brandLegal = headerList.get('x-brand-legal') || '';
   const brandLogo = headerList.get('x-brand-logo') || '';
+  const brandIconUrl = mediaUrl(headerList.get('x-brand-icon') || '');
 
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
@@ -60,26 +62,44 @@ export default async function BookPackagePage({ params, searchParams }) {
         
         {/* Sticky Header - Konsisten dengan PackageDetailClient */}
         <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3 flex items-center justify-between shadow-2xs">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Link 
-              href={`/paket/${resolvedParams.id}`} 
-              className="w-[34px] h-[34px] flex items-center justify-center rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 active:scale-95 transition-all shadow-2xs shrink-0 cursor-pointer"
-              title="Kembali ke Detail Paket"
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Kembali ke detail paket: hanya di langkah 1 (disembunyikan via CSS
+                .booking-back-link saat BookingWizard menandai langkah lain). */}
+            <Link
+              href={`/paket/${resolvedParams.id}`}
+              aria-label="Kembali ke detail paket"
+              className="booking-back-link -ml-2 p-1.5 rounded-full text-neutral-700 hover:bg-neutral-100 shrink-0"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </Link>
+            {brandIconUrl ? (
+              <img
+                src={brandIconUrl}
+                alt={`${brandName} Icon`}
+                className="w-8 h-8 rounded-lg object-contain bg-white border border-neutral-200/80 shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 flex justify-center items-center bg-brand text-white rounded-lg font-bold text-sm shrink-0" aria-hidden="true">
+                {brandName ? brandName.charAt(0) : 'A'}
+              </div>
+            )}
             <div className="min-w-0 flex flex-col justify-center">
               <div className="flex items-center gap-1.5 leading-none">
-                <span className="text-[13px] font-bold text-neutral-900 leading-none truncate">{brandName}</span>
+                <span className="text-sm font-bold text-neutral-900 leading-none truncate">{brandName}</span>
                 <svg className="w-3.5 h-3.5 text-[#1877F2] shrink-0" viewBox="0 0 24 24" fill="currentColor" title="Terverifikasi Resmi">
                   <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-[11px] text-neutral-500 font-medium leading-tight mt-0.5">Formulir Booking</span>
+              <span className="text-xs text-neutral-500 font-medium leading-tight mt-0.5">Formulir Booking</span>
             </div>
           </div>
+          {brandPpiu && (
+            <span className="ml-2 inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 shrink-0 max-w-1/2 truncate" title={`Izin PPIU ${brandPpiu}`}>
+              <span className="truncate">PPIU {brandPpiu.replace(/^No\.?\s*/i, '')}</span>
+            </span>
+          )}
         </header>
 
         {/* Content Container */}
