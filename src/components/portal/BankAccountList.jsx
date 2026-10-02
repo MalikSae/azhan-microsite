@@ -1,11 +1,11 @@
 'use client';
+import { mediaUrl } from '@/lib/mediaUrl';
 
 import React, { useState } from 'react';
 
 // Daftar rekening resmi brand dengan tombol salin nomor rekening.
 // Dipakai halaman pembayaran booking dan pembayaran pendaftaran agen Syiar.
 export default function BankAccountList({ accounts = [] }) {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const [copiedKey, setCopiedKey] = useState(null);
 
   const handleCopy = (text, key) => {
@@ -28,7 +28,7 @@ export default function BankAccountList({ accounts = [] }) {
     <div className="divide-y divide-neutral-100">
       {accounts.map((acc, i) => {
         const accLogo = acc.logo_url
-          ? (acc.logo_url.startsWith('http') ? acc.logo_url : `${apiBaseUrl}${acc.logo_url}`)
+          ? mediaUrl(acc.logo_url)
           : null;
 
         return (

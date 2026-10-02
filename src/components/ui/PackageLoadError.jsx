@@ -8,7 +8,7 @@ export default function PackageLoadError() {
   return <div role="alert" className="rounded-xl border border-danger-200 bg-danger-50 p-4">
     <p>Daftar paket gagal dimuat. Filter Anda tetap tersimpan.</p>
     <button disabled={pending} onClick={() => startTransition(() => router.refresh())}
-      className="mt-3 min-h-11 rounded-lg bg-brand px-4 text-white disabled:opacity-50">
+      className="mt-3 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
       {pending ? 'Memuat...' : 'Coba lagi'}
     </button>
   </div>;

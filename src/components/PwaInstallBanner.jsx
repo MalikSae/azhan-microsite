@@ -86,7 +86,7 @@ export default function PwaInstallBanner({ brandName = 'Travel Umroh', brandId =
         <button
           type="button"
           onClick={handleInstall}
-          className="min-h-11 shrink-0 rounded-lg bg-brand px-4 text-xs font-bold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+          className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
         >
           Install
         </button>

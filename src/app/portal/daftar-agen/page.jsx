@@ -12,7 +12,7 @@ import Turnstile from '@/components/ui/Turnstile';
 // dan melanjutkan ke Lengkapi Data Agen.
 
 const inputClass =
-  'w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all bg-neutral-50/40 focus:bg-white';
+  'w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all bg-neutral-50/40 focus:bg-white';
 
 const onlyDigits = (value) => value.replace(/\D/g, '').slice(0, 6);
 

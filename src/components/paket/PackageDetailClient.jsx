@@ -1,4 +1,5 @@
 'use client';
+import { mediaUrl } from '@/lib/mediaUrl';
 import { roomSavings } from '@/lib/packagePolicy.mjs';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -169,16 +170,15 @@ export default function PackageDetailClient({
   }, [schedule?.exclude_items]);
 
   // Hero image from dashboard uploaded brochure
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const getFullImg = (url, fallback) => {
     if (!url || typeof url !== 'string' || !url.trim()) return fallback;
-    return url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
+    return mediaUrl(url);
   };
 
   const heroImageUrl = useMemo(() => {
     const raw = schedule?.brosur_url || schedule?.brosur_thumb_url;
     return getFullImg(raw, '/images/hero-makkah.jpg');
-  }, [schedule?.brosur_url, schedule?.brosur_thumb_url, apiBaseUrl]);
+  }, [schedule?.brosur_url, schedule?.brosur_thumb_url]);
 
   // Hotel photo resolver with matching database logos fallback
   const getHotelPhoto = (hotel, fallback) => {
@@ -723,10 +723,10 @@ export default function PackageDetailClient({
                     </div>
                     <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                       {schedule.is_direct_flight
-                        ? 'Direct Flight'
+                        ? 'Direct'
                         : (schedule.transit_bandara
                             ? `Transit ${schedule.transit_bandara.replace(/^Berangkat:\s*/i, '')}`
-                            : '1x Transit')}
+                            : 'Transit')}
                     </span>
                   </div>
 

@@ -1,5 +1,6 @@
+import { apiBase } from '@/lib/apiBase';
 export async function getPublicSchedules(brandId) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
+  const baseUrl = apiBase();
   const url = brandId ? `${baseUrl}/api/schedules?brand=${brandId}` : `${baseUrl}/api/schedules`;
   
   const res = await fetch(url, { cache: 'no-store' });
@@ -13,7 +14,7 @@ export async function getPublicSchedules(brandId) {
 }
 
 export async function getPublicBankAccounts(brandId) {
-  const baseUrl = process.env.API_BASE_URL_INTERNAL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
+  const baseUrl = apiBase();
   const url = brandId ? `${baseUrl}/api/public/bank-accounts?brand_id=${brandId}` : `${baseUrl}/api/public/bank-accounts`;
 
   try {

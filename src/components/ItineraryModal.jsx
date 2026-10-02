@@ -1,5 +1,6 @@
 'use client';
 import useDialogFocus from './ui/useDialogFocus';
+import { apiBase } from '@/lib/apiBase';
 
 import React, { useState, useEffect } from 'react';
 
@@ -15,7 +16,7 @@ export default function ItineraryModal({ itineraryId, isOpen, onClose }) {
         setLoading(true);
         setError(null);
         try {
-          const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
+          const baseUrl = apiBase();
           const res = await fetch(`${baseUrl}/api/itineraries/${itineraryId}`);
           if (!res.ok) {
             throw new Error('Gagal memuat itinerary');

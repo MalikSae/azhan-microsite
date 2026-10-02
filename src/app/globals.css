@@ -252,7 +252,17 @@ textarea {
   transition: border-color 0.15s ease-in-out;
 }
 
-.input-brand:hover,
+/* Formulir booking: ikon kembali di header hanya untuk langkah 1. Langkah
+   lain punya tombol "Kembali" di bar bawah. Atribut diisi BookingWizard. */
+html[data-booking-step]:not([data-booking-step="1"]) .booking-back-link {
+  display: none;
+}
+
+/* Hover cukup abu-abu: warna brand (mis. merah) saat hover terlihat seperti error. */
+.input-brand:hover {
+  border-color: #CBD5E1 !important;
+}
+
 .input-brand:focus {
   border-color: var(--brand-primary, #B87A3A) !important;
   outline: none !important;

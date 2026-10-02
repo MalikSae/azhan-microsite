@@ -10,7 +10,8 @@ import { getPublicSchedules, getPublicBankAccounts } from '@/lib/api';
 import { formatRupiah } from '@/lib/portalFormat';
 import BookingWizard from '@/components/booking/BookingWizard';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
+import { apiBase } from '@/lib/apiBase';
+const API_BASE_URL = apiBase();
 
 // Booking online ditutup H-14 keberangkatan (sama dengan booking publik).
 function lewatCutoff(tanggal) {

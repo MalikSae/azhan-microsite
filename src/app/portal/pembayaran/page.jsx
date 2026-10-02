@@ -9,7 +9,7 @@ import { chooseBooking, localTransferDate, paymentFileError } from '@/lib/portal
 import { formatRupiah, formatTanggalIndo } from '@/lib/portalFormat';
 import PortalDialog from '@/components/ui/PortalDialog';
 import BankAccountList from '@/components/portal/BankAccountList';
-const inputClass = 'w-full min-h-11 rounded-xl border border-neutral-300 p-3 text-sm focus:ring-2 focus:ring-brand';
+const inputClass = 'w-full h-11 rounded-xl border border-neutral-300 px-3 text-sm focus:ring-2 focus:ring-brand';
 const buttonClass = 'min-h-11 px-4 py-2 rounded-xl border border-neutral-300 text-sm font-semibold disabled:opacity-50';
 
 export default function PortalPembayaranPage() {

@@ -26,8 +26,8 @@ const DEFAULT_SLIDES = [
   },
   {
     id: 3,
-    badge: 'DIRECT FLIGHT SAUDIA & GARUDA',
-    headline: 'Penerbangan Langsung Tanpa Transit',
+    badge: 'DIRECT SAUDIA & GARUDA',
+    headline: 'Penerbangan Direct',
     subtitle: 'Fasilitas Kereta Cepat Haramain Makkah-Madinah 2 Jam',
     ctaText: 'Cek Jadwal & Kuota',
     ctaHref: '/paket',
@@ -99,7 +99,7 @@ export default function HomeAppSlider({ slides = DEFAULT_SLIDES, brandWhatsapp =
               <div className="relative z-10 w-full flex justify-between items-center pt-1">
                 <Link
                   href={slide.ctaHref || '/paket'}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-brand text-white text-[10.5px] font-bold shadow-md hover:brightness-110 active:scale-95 transition-all"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand text-white text-[10.5px] font-bold shadow-md hover:brightness-110 active:scale-95 transition-all"
                 >
                   <span>{slide.ctaText}</span>
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -124,7 +124,7 @@ export default function HomeAppSlider({ slides = DEFAULT_SLIDES, brandWhatsapp =
             type="button"
             onClick={() => setCurrentIndex(idx)}
             aria-label={`Pindah ke banner promosi ${idx + 1}`}
-            className={`transition-all duration-300 rounded-[999px] h-[5px] cursor-pointer ${
+            className={`transition-all duration-300 rounded-full h-[5px] cursor-pointer ${
               idx === currentIndex
                 ? 'w-[20px] bg-brand'
                 : 'w-[5px] bg-[#D1D5DB] hover:bg-neutral-400'

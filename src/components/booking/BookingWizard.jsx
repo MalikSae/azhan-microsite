@@ -1,8 +1,11 @@
 'use client';
-import { packagePricing, scheduleBelongsToBrand } from '@/lib/packagePolicy.mjs';
+import { mediaUrl } from '@/lib/mediaUrl';
+import { packagePricing, scheduleBelongsToBrand, roomSavings } from '@/lib/packagePolicy.mjs';
 import { TERMS_VERSION, paymentTerms, validPhone, validInfant } from '@/lib/checkoutPolicy.mjs';
 import useDialogFocus from '@/components/ui/useDialogFocus';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 import useBookingAccessibility from './useBookingAccessibility';
+import BookingTermsContent from './BookingTermsContent';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -28,12 +31,16 @@ const formatDate = (dateStr) => {
   }
 };
 
-// Custom Select Component for Clean UI
-function CustomSelect({ value, onChange, options, placeholder = 'Pilih Jenis Kelamin' }) {
-  return <select value={value} onChange={e => onChange(e.target.value)} className="w-full min-h-11 px-3.5 py-2.5 text-sm rounded-lg input-brand bg-white">
-    <option value="">{placeholder}</option>
-    {(options || [{value:'L',label:'Laki-laki'},{value:'P',label:'Perempuan'}]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-  </select>;
+// Dropdown form wizard: memakai CustomDropdown (bawaan: jenis kelamin).
+function CustomSelect({ value, onChange, options, placeholder = 'Pilih jenis kelamin' }) {
+  return (
+    <CustomDropdown
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      options={options || [{ value: 'L', label: 'Laki-laki' }, { value: 'P', label: 'Perempuan' }]}
+    />
+  );
 }
 export default function BookingWizard({
   schedule,
@@ -56,6 +63,12 @@ export default function BookingWizard({
   const router = useRouter();
   // Active step: 1 (Kamar), 2 (Data Jamaah), 3 (Konfirmasi), 4 (Pembayaran)
   const [step, setStep] = useState(1);
+  // Tandai langkah aktif di <html> agar header halaman (server component) bisa
+  // menyembunyikan ikon kembali di luar langkah 1 lewat CSS (.booking-back-link).
+  useEffect(() => {
+    document.documentElement.dataset.bookingStep = String(step);
+    return () => { delete document.documentElement.dataset.bookingStep; };
+  }, [step]);
   const formRef = useBookingAccessibility(step);
   const requestKey = useRef(null);
   const phoneRequest = useRef(0);
@@ -103,44 +116,67 @@ export default function BookingWizard({
   const [alertMsg, setAlertMsg] = useState('');
   const [pendingRoomSwap, setPendingRoomSwap] = useState(null);
   const [showBillDetails, setShowBillDetails] = useState(false);
+  const [showPaketDetail, setShowPaketDetail] = useState(false);
   const [copiedAccount, setCopiedAccount] = useState(null);
   const [bookingResult, setBookingResult] = useState(null);
   const activeAccounts = (initialBankAccounts && initialBankAccounts.length > 0) ? initialBankAccounts : ((travelAccounts && travelAccounts.length > 0) ? travelAccounts : []);
 
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [draftAvailable, setDraftAvailable] = useState(false);
+  // Drawer syarat & ketentuan: dibaca tanpa meninggalkan halaman checkout.
+  const [showTerms, setShowTerms] = useState(false);
+  // Draf formulir disimpan otomatis (sessionStorage: tab ini saja, 30 menit,
+  // PIN tidak disimpan). Saat halaman dibuka dan ada draf milik pemesan yang
+  // sama, tampil banner "Lanjutkan isian sebelumnya?". Simpan otomatis baru
+  // aktif setelah pilihan banner, agar draf lama tidak tertimpa formulir kosong.
+  const [authChecked, setAuthChecked] = useState(false);
+  const [draftPrompt, setDraftPrompt] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
   const draftKey = `booking_draft_${brandId}_${schedule?.id}`;
-  useEffect(() => {
+  const draftOwner = draftOwnerId || loggedInUser?.id || null;
+  const readDraft = () => {
     try {
-      sessionStorage.removeItem(`booking_result_${schedule?.id}`);
       const saved = JSON.parse(sessionStorage.getItem(draftKey) || 'null');
-      if (saved?.expires > Date.now()) setDraftAvailable(true);
-      else sessionStorage.removeItem(draftKey);
-    } catch {}
-  }, [draftKey, schedule?.id]);
-  const saveDraft = () => {
-    try {
-      const fields = { counts, picNama, picGender, picPhone, picEmail, picRoomType, picSlotIndex, jamaahQuad, jamaahTriple, jamaahDouble, jamaahInfant, picJamaahId };
-      sessionStorage.setItem(draftKey, JSON.stringify({ expires: Date.now() + 30 * 60 * 1000, fields, mode: agenMode, owner: draftOwnerId || loggedInUser?.id || null }));
-      setDraftAvailable(true); setAlertMsg('Draf tersimpan selama 30 menit di tab ini. PIN tidak disimpan.');
-    } catch { setAlertMsg('Perangkat tidak mengizinkan penyimpanan draf. Formulir tetap dapat digunakan.'); }
+      if (!saved || saved.expires <= Date.now() || saved.mode !== agenMode || saved.owner !== draftOwner) {
+        sessionStorage.removeItem(draftKey);
+        return null;
+      }
+      return saved;
+    } catch {
+      return null;
+    }
   };
+  useEffect(() => {
+    try { sessionStorage.removeItem(`booking_result_${schedule?.id}`); } catch {}
+  }, [schedule?.id]);
+  // Pemilik draf bergantung pada sesi login, jadi diputuskan setelah checkAuth selesai.
+  useEffect(() => {
+    if (!authChecked || draftReady || draftPrompt) return;
+    if (readDraft()) setDraftPrompt(true);
+    else setDraftReady(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authChecked, draftKey, draftOwner]);
   const restoreDraft = () => {
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(draftKey) || 'null');
-      if (!saved || saved.expires <= Date.now() || saved.mode !== agenMode || saved.owner !== (draftOwnerId || loggedInUser?.id || null)) { sessionStorage.removeItem(draftKey); setDraftAvailable(false); setAlertMsg('Draf kedaluwarsa atau berasal dari pemesan berbeda.'); return; }
-      const f = saved.fields;
-      setCounts(f.counts); setPicNama(f.picNama); setPicGender(f.picGender); setPicPhone(f.picPhone); setPicEmail(f.picEmail); setPicRoomType(f.picRoomType); setPicSlotIndex(f.picSlotIndex);
-      setJamaahQuad(f.jamaahQuad); setJamaahTriple(f.jamaahTriple); setJamaahDouble(f.jamaahDouble); setJamaahInfant(f.jamaahInfant); setPicJamaahId(f.picJamaahId);
-      setPhoneCheckStatus(loggedInUser ? 'logged_in' : 'idle'); setAgree(false); setStep(1);
-    } catch { setAlertMsg('Draf tidak dapat dipulihkan.'); }
+    const saved = readDraft();
+    setDraftPrompt(false);
+    setDraftReady(true);
+    if (!saved) { setAlertMsg('Isian sebelumnya sudah kedaluwarsa.'); return; }
+    const f = saved.fields;
+    setCounts(f.counts); setPicNama(f.picNama); setPicGender(f.picGender); setPicPhone(f.picPhone); setPicEmail(f.picEmail); setPicRoomType(f.picRoomType); setPicSlotIndex(f.picSlotIndex);
+    setJamaahQuad(f.jamaahQuad); setJamaahTriple(f.jamaahTriple); setJamaahDouble(f.jamaahDouble); setJamaahInfant(f.jamaahInfant); setPicJamaahId(f.picJamaahId);
+    setPhoneCheckStatus(loggedInUser ? 'logged_in' : 'idle'); setAgree(false); setStep(1);
+  };
+  const discardDraft = () => {
+    try { sessionStorage.removeItem(draftKey); } catch {}
+    setDraftPrompt(false);
+    setDraftReady(true);
   };
   const alertRef = useDialogFocus(Boolean(alertMsg));
   const swapRef = useDialogFocus(Boolean(pendingRoomSwap));
   const logoutRef = useDialogFocus(showLogoutModal);
+  const termsRef = useDialogFocus(showTerms);
   useEffect(() => {
-    const close = e => { if (e.key === 'Escape') { setAlertMsg(''); setPendingRoomSwap(null); setShowLogoutModal(false); } };
+    const close = e => { if (e.key === 'Escape') { setAlertMsg(''); setPendingRoomSwap(null); setShowLogoutModal(false); setShowTerms(false); } };
     document.addEventListener('keydown', close);
     return () => document.removeEventListener('keydown', close);
   }, []);
@@ -148,6 +184,28 @@ export default function BookingWizard({
   // Mode agen: daftar jamaah milik agen + jamaah terpilih sebagai PIC.
   const [jamaahSaya, setJamaahSaya] = useState([]);
   const [picJamaahId, setPicJamaahId] = useState(null);
+
+  // Simpan otomatis draf (langkah 1-3). Isian kosong, termasuk data PIC yang
+  // hanya terisi otomatis dari profil login, tidak disimpan.
+  useEffect(() => {
+    if (!draftReady || step >= 4) return undefined;
+    const timer = setTimeout(() => {
+      const paxDiisi = [jamaahQuad, jamaahTriple, jamaahDouble, jamaahInfant]
+        .some((list) => list.some((p) => p && (p.nama || p.no_hp || p.tanggal_lahir || p.jamaah_id)));
+      const picDiisi = loggedInUser
+        ? picNama !== (loggedInUser.nama_lengkap || '') || picPhone !== (loggedInUser.no_hp || '') || picEmail !== (loggedInUser.email || '')
+        : Boolean(picNama || picPhone || picEmail);
+      if (!paxDiisi && !picDiisi && !picJamaahId) return;
+      try {
+        const fields = { counts, picNama, picGender, picPhone, picEmail, picRoomType, picSlotIndex, jamaahQuad, jamaahTriple, jamaahDouble, jamaahInfant, picJamaahId };
+        sessionStorage.setItem(draftKey, JSON.stringify({ expires: Date.now() + 30 * 60 * 1000, fields, mode: agenMode, owner: draftOwner }));
+      } catch {
+        // Penyimpanan diblokir perangkat: formulir tetap berjalan tanpa draf.
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftReady, step, counts, picNama, picGender, picPhone, picEmail, picRoomType, picSlotIndex, jamaahQuad, jamaahTriple, jamaahDouble, jamaahInfant, picJamaahId, draftKey, draftOwner]);
 
   useEffect(() => {
     if (!agenMode) return;
@@ -162,21 +220,19 @@ export default function BookingWizard({
   );
 
   const pilihJamaahSaya = (onPick) => (
-    <select
+    <CustomDropdown
       value=""
-      onChange={(e) => {
-        const j = jamaahSaya.find((x) => String(x.id) === e.target.value);
+      onChange={(id) => {
+        const j = jamaahSaya.find((x) => String(x.id) === String(id));
         if (j) onPick(j);
       }}
-      className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
-    >
-      <option value="">Pilih dari Jamaah Saya (repeat order)...</option>
-      {jamaahSaya.filter((j) => !usedJamaahIds.has(j.id)).map((j) => (
-        <option key={j.id} value={j.id}>
-          {j.nama_lengkap}{j.no_hp_masked ? ` · ${j.no_hp_masked}` : ''}
-        </option>
-      ))}
-    </select>
+      placeholder="Pilih dari Jamaah Saya (repeat order)"
+      options={jamaahSaya.filter((j) => !usedJamaahIds.has(j.id)).map((j) => ({
+        value: j.id,
+        label: j.nama_lengkap,
+        sublabel: j.no_hp_masked || undefined,
+      }))}
+    />
   );
 
   const chipJamaahSaya = (nama, onReset) => (
@@ -242,7 +298,7 @@ export default function BookingWizard({
       }
     };
 
-    checkAuth();
+    checkAuth().finally(() => setAuthChecked(true));
   }, [schedule?.brand_id, brandId, agenMode]);
 
   const handleLogoutAuth = () => {
@@ -265,10 +321,9 @@ export default function BookingWizard({
   };
 
   const activeColor = brandColor || '#990000';
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
   const rawLogo = schedule?.maskapai?.logo_url || schedule?.airline_logo || schedule?.maskapai_logo;
   const airlineLogoUrl = rawLogo
-    ? (rawLogo.startsWith('http') ? rawLogo : `${apiBaseUrl}${rawLogo}`)
+    ? mediaUrl(rawLogo)
     : null;
 
   // Room Prices from Schedule
@@ -280,6 +335,10 @@ export default function BookingWizard({
   const pricingReady = effectiveDP !== null && effectiveDP >= 0 && effectiveDP <= Math.min(priceQuad, priceTriple, priceDouble);
   const brandMatches = scheduleBelongsToBrand(schedule, brandId);
   const seatSisa = schedule?.seat_sisa ?? 0;
+  // Promo (harga coret) hanya untuk Quad; berlaku sampai promo_until pukul 23.59 WIB.
+  const hariIniWIB = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+  const promoAktif = Boolean(schedule?.is_promo) && !(schedule?.promo_until && String(schedule.promo_until).slice(0, 10) < hariIniWIB);
+  const hematQuad = promoAktif ? roomSavings(schedule, 'quad') : 0;
 
   // Total Calculations
   const totalReguler = counts.quad + counts.triple + counts.double;
@@ -442,6 +501,16 @@ export default function BookingWizard({
     }
   };
 
+  // Cek otomatis setelah jeda mengetik, dan saat nomor terisi dari draf. Tanpa
+  // ini tombol Lanjut terkunci sampai field di-blur, padahal tombol yang
+  // disabled tidak mengambil fokus saat diketuk.
+  useEffect(() => {
+    if (step !== 2 || loggedInUser || agenMode || phoneCheckStatus !== 'idle' || !validPhone(picPhone)) return undefined;
+    const timer = setTimeout(() => checkPhone(picPhone), 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, picPhone, phoneCheckStatus, loggedInUser, agenMode]);
+
   // Navigation: Step 1 -> Step 2
   const goToStep2 = () => {
     if (!pricingReady || !brandMatches) { showAlert('Paket atau konfigurasi harga tidak tersedia. Muat ulang halaman atau hubungi admin.'); return; }
@@ -467,10 +536,14 @@ export default function BookingWizard({
       Array.from({ length: counts.infant }, (_, i) => prev[i] || { nama: '', jenis_kelamin: '', tanggal_lahir: '' })
     );
 
-    if (totalReguler === 1) {
-      const autoType = counts.quad === 1 ? 'Quad' : (counts.triple === 1 ? 'Triple' : 'Double');
+    // Hanya satu tipe kamar reguler dipilih: kamar jamaah utama sudah pasti,
+    // jadi diisi otomatis (field "Pilih Kamar" tidak ditampilkan).
+    const tipeDipilih = [['Quad', counts.quad], ['Triple', counts.triple], ['Double', counts.double]].filter(([, n]) => n > 0);
+    if (tipeDipilih.length === 1) {
+      const [autoType, autoCount] = tipeDipilih[0];
+      const slotMasihValid = picRoomType === autoType && picSlotIndex !== null && picSlotIndex < autoCount;
       setPicRoomType(autoType);
-      setPicSlotIndex(0);
+      if (!slotMasihValid) setPicSlotIndex(0);
     } else if (picRoomType) {
       let currentCount = 0;
       if (picRoomType === 'Quad') currentCount = counts.quad;
@@ -487,12 +560,27 @@ export default function BookingWizard({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Nomor jamaah di form: pemesan selalu 1, lainnya berurutan Quad -> Triple
+  // -> Double melewati slot pemesan (sama dengan urutan pax di invoice).
+  const nomorJamaah = (type, idx) => {
+    if (picRoomType === type && picSlotIndex === idx) return 1;
+    let n = picRoomType ? 1 : 0;
+    for (const [t, c] of [['Quad', counts.quad], ['Triple', counts.triple], ['Double', counts.double]]) {
+      for (let i = 0; i < c; i++) {
+        if (picRoomType === t && picSlotIndex === i) continue;
+        n += 1;
+        if (t === type && i === idx) return n;
+      }
+    }
+    return n;
+  };
+
   // Navigation: Step 2 -> Step 3
   const goToStep3 = () => {
     const invalid = formRef.current?.querySelector('input:invalid,select:invalid');
     if (invalid) { invalid.reportValidity(); invalid.focus(); return; }
     if (!picRoomType) {
-      showAlert('Pilih tipe kamar untuk Jamaah Utama.');
+      showAlert(agenMode ? 'Pilih kamar penanggung jawab rombongan.' : 'Pilih kamar Anda.');
       return;
     }
     if (!picNama.trim()) {
@@ -790,6 +878,7 @@ export default function BookingWizard({
   for (let i = 0; i < counts.quad; i++) {
     const isPic = picRoomType === 'Quad' && picSlotIndex === i;
     summaryJamaahList.push({
+      isPic,
       num: paxIndex++,
       nama: isPic ? picNama : (jamaahQuad[i]?.nama || `Jamaah ${paxIndex - 1}`),
       sub: `Kamar Quad • ${(isPic ? picGender : jamaahQuad[i]?.jenis_kelamin) === 'L' ? 'Laki-laki' : 'Perempuan'}`,
@@ -800,6 +889,7 @@ export default function BookingWizard({
   for (let i = 0; i < counts.triple; i++) {
     const isPic = picRoomType === 'Triple' && picSlotIndex === i;
     summaryJamaahList.push({
+      isPic,
       num: paxIndex++,
       nama: isPic ? picNama : (jamaahTriple[i]?.nama || `Jamaah ${paxIndex - 1}`),
       sub: `Kamar Triple • ${(isPic ? picGender : jamaahTriple[i]?.jenis_kelamin) === 'L' ? 'Laki-laki' : 'Perempuan'}`,
@@ -810,6 +900,7 @@ export default function BookingWizard({
   for (let i = 0; i < counts.double; i++) {
     const isPic = picRoomType === 'Double' && picSlotIndex === i;
     summaryJamaahList.push({
+      isPic,
       num: paxIndex++,
       nama: isPic ? picNama : (jamaahDouble[i]?.nama || `Jamaah ${paxIndex - 1}`),
       sub: `Kamar Double • ${(isPic ? picGender : jamaahDouble[i]?.jenis_kelamin) === 'L' ? 'Laki-laki' : 'Perempuan'}`,
@@ -826,14 +917,37 @@ export default function BookingWizard({
     });
   }
 
+  // Pemesan selalu nomor 1 (sama dengan langkah 2 dan urutan pax di invoice).
+  summaryJamaahList.sort((a, b) => Number(Boolean(b.isPic)) - Number(Boolean(a.isPic)));
+  summaryJamaahList.forEach((j, i) => {
+    j.num = i + 1;
+    if (j.isPic) j.nama = `${j.nama} (${agenMode ? 'penanggung jawab' : 'Anda'})`;
+  });
+
   return (
     <div ref={formRef} className="space-y-6 pb-20 sm:pb-0" style={{ '--brand-primary': activeColor }}>
-      <h2 data-step-heading tabIndex={-1} className="text-base font-bold">Langkah {step}: {['','Pilih kamar','Data jamaah','Periksa dan setujui','Hasil pemesanan'][step]}</h2>
-      <p className="text-sm text-neutral-600">{fullPayment ? 'Keberangkatan dalam 45 hari: pelunasan penuh diperlukan dalam 24 jam.' : 'Reservasi awal 24 jam. DP nol berarti tanpa minimum nominal, bukan biaya perjalanan gratis.'}</p>
-      {step < 4 && <div className="flex flex-wrap gap-2 text-sm">
-        <button type="button" className="min-h-11 px-3 rounded-lg border" onClick={saveDraft}>Simpan draf 30 menit</button>
-        {draftAvailable && <><button type="button" className="min-h-11 px-3 rounded-lg border" onClick={restoreDraft}>Pulihkan draf</button><button type="button" className="min-h-11 px-3 rounded-lg border" onClick={() => { try { sessionStorage.removeItem(draftKey); } catch {} setDraftAvailable(false); }}>Hapus draf</button></>}
-      </div>}
+      {/* Judul langkah tetap ada untuk pembaca layar & fokus; secara visual stepper sudah menunjukkannya. */}
+      <h2 data-step-heading tabIndex={-1} className="sr-only">Langkah {step}: {['','Pilih kamar','Data jamaah','Periksa dan setujui','Hasil pemesanan'][step]}</h2>
+      {step >= 2 && (
+        <div role="note" className="flex items-start gap-2.5 rounded-xl bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+          <svg className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p>{fullPayment ? 'Keberangkatan dalam 45 hari: pelunasan penuh diperlukan dalam 24 jam.' : 'Reservasi awal 24 jam. DP nol berarti tanpa minimum nominal, bukan biaya perjalanan gratis.'}</p>
+        </div>
+      )}
+      {step < 4 && draftPrompt && (
+        <div role="status" className="flex flex-col gap-2.5 rounded-2xl border border-neutral-200 bg-neutral-50 p-3">
+          <div>
+            <p className="text-sm font-semibold text-neutral-900">Lanjutkan isian sebelumnya?</p>
+            <p className="text-xs text-neutral-600">Data pemesanan yang belum selesai masih tersimpan di perangkat ini.</p>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={discardDraft} className="rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-sm font-semibold text-neutral-700">Mulai baru</button>
+            <button type="button" onClick={restoreDraft} className="rounded-xl bg-brand px-3 py-1.5 text-sm font-semibold text-white">Lanjutkan</button>
+          </div>
+        </div>
+      )}
       {(agenMode || phoneCheckStatus === 'tanpa_pin') && <p className="text-sm p-3 bg-amber-50 rounded-lg">PIC belum memiliki PIN? Setelah booking, hubungi admin untuk melengkapi tanggal lahir dan memperoleh link aktivasi. Bukti transfer dapat disampaikan melalui kontak resmi travel.</p>}
       {/* Alert Modal */}
       {alertMsg && (
@@ -902,7 +1016,7 @@ export default function BookingWizard({
             <div className="space-y-1">
               <h3 className="font-bold text-neutral-900 text-base">Keluar dari Akun?</h3>
               <p className="text-xs text-neutral-500 leading-relaxed">
-                Anda akan keluar dari akun <strong>{loggedInUser?.nama_lengkap}</strong> dan data formulir Jamaah Utama akan dikosongkan untuk pendaftaran baru.
+                Anda akan keluar dari akun <strong>{loggedInUser?.nama_lengkap}</strong> dan data Anda di formulir akan dikosongkan untuk pendaftaran baru.
               </p>
             </div>
             <div className="flex items-center gap-2.5 pt-1">
@@ -980,281 +1094,143 @@ export default function BookingWizard({
         {/* ─── STEP 1: PILIH KAMAR & JUMLAH JAMAAH ─── */}
         {step === 1 && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Card Ringkasan Paket Terintegrasi */}
-            <div className="p-3.5 rounded-2xl bg-neutral-50/90 border border-neutral-200/90 shadow-2xs space-y-2.5">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-brand uppercase tracking-wider block">
-                    Paket Dipilih
-                  </span>
-                  <h2 className="text-[14px] font-extrabold text-neutral-900 leading-snug line-clamp-2">
-                    {schedule?.jadwal_nama}
-                  </h2>
+            {/* Ringkasan paket: satu baris, tanpa kartu. Detail (hotel, izin, tiket) bisa dibuka. */}
+            <div className="pb-4 border-b border-neutral-100">
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-neutral-900 truncate">{schedule?.jadwal_nama}</p>
+                  <p className="text-xs text-neutral-500 truncate">
+                    {[formatDate(schedule?.berangkat_tanggal), durationDays > 0 ? `${durationDays} hari` : null, schedule?.maskapai?.name].filter(Boolean).join(' · ')}
+                  </p>
                 </div>
-                {airlineLogoUrl ? (
-                  <div className="w-9 h-9 rounded-xl bg-white border border-neutral-200/80 p-1 flex items-center justify-center shrink-0 shadow-2xs">
-                    <img src={airlineLogoUrl} alt={schedule.maskapai?.name || 'Maskapai'} className="w-full h-full object-contain" />
-                  </div>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setShowPaketDetail((v) => !v)}
+                  aria-expanded={showPaketDetail}
+                  aria-controls="paket-detail"
+                  className="-mr-2 px-2 py-1.5 flex items-center gap-1 rounded-xl text-xs font-semibold text-neutral-700 hover:bg-neutral-100 shrink-0 cursor-pointer"
+                >
+                  Detail
+                  <svg className={`w-4 h-4 transition-transform duration-200 ${showPaketDetail ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
               </div>
 
-              {/* Departure, Duration, Airline & Direct */}
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-neutral-600 font-medium pt-1.5 border-t border-neutral-200/70">
-                <span className="font-semibold text-neutral-800">{formatDate(schedule?.berangkat_tanggal)}</span>
-                {durationDays > 0 && (
-                  <>
-                    <span className="text-neutral-300">•</span>
-                    <span className="font-bold text-brand">{durationDays} Hari</span>
-                  </>
-                )}
-                {schedule?.maskapai?.name && (
-                  <>
-                    <span className="text-neutral-300">•</span>
-                    <span>{schedule.maskapai.name}</span>
-                  </>
-                )}
-                {schedule?.is_direct_flight && (
-                  <>
-                    <span className="text-neutral-300">•</span>
-                    <span className="text-neutral-600 font-semibold">Direct</span>
-                  </>
-                )}
-              </div>
-
-              {/* Hotel Mekkah & Madinah with Adjacent Star Rating */}
-              {(schedule?.hotel_mekkah || schedule?.hotel_madinah) && (
-                <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-neutral-200/70 text-[10.5px]">
-                  {schedule?.hotel_mekkah && (
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1 font-bold text-neutral-500 text-[9.5px] uppercase">
-                        <span>Mekkah</span>
-                        {Boolean(schedule.hotel_mekkah.star_rating) && (
-                          <span className="text-amber-500 font-bold">★ {schedule.hotel_mekkah.star_rating}</span>
-                        )}
-                      </div>
-                      <span className="font-bold text-neutral-900 truncate block">
-                        {schedule.hotel_mekkah.name}
-                      </span>
+              {showPaketDetail && (
+                <dl id="paket-detail" className="mt-3 space-y-2 text-xs">
+                  {[
+                    ['Hotel Mekkah', schedule?.hotel_mekkah && `${schedule.hotel_mekkah.name}${schedule.hotel_mekkah.star_rating ? ` · ★ ${schedule.hotel_mekkah.star_rating}` : ''}`],
+                    ['Hotel Madinah', schedule?.hotel_madinah && `${schedule.hotel_madinah.name}${schedule.hotel_madinah.star_rating ? ` · ★ ${schedule.hotel_madinah.star_rating}` : ''}`],
+                    ['Penerbangan', [schedule?.maskapai?.name, schedule?.is_direct_flight ? 'Direct' : 'Transit'].filter(Boolean).join(' · ')],
+                  ].filter(([, nilai]) => nilai).map(([label, nilai]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <dt className="text-neutral-500 shrink-0">{label}</dt>
+                      <dd className="text-neutral-900 font-medium text-right">{nilai}</dd>
                     </div>
-                  )}
-                  {schedule?.hotel_madinah && (
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1 font-bold text-neutral-500 text-[9.5px] uppercase">
-                        <span>Madinah</span>
-                        {Boolean(schedule.hotel_madinah.star_rating) && (
-                          <span className="text-amber-500 font-bold">★ {schedule.hotel_madinah.star_rating}</span>
-                        )}
-                      </div>
-                      <span className="font-bold text-neutral-900 truncate block">
-                        {schedule.hotel_madinah.name}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                  ))}
+                </dl>
               )}
-
-              {/* Trust Badges */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-neutral-200/70">
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
-                  {brandPpiu ? `Izin PPIU ${brandPpiu}` : 'Informasi izin: hubungi admin'}
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
-                  {schedule?.is_ticket_confirmed ? 'Tiket Dikonfirmasi' : 'Tiket Belum Dikonfirmasi'}
-                </span>
-              </div>
             </div>
 
             <div>
-              <h1 className="text-[16px] sm:text-[17px] font-bold text-neutral-900 font-heading tracking-tight">
-                Pilih Kamar & Jumlah Jamaah
-              </h1>
-              <p className="text-[11.5px] text-neutral-500 mt-0.5 font-normal">
-                Pilih tipe kamar dan tentukan jumlah pax jamaah.
+              <h1 className="text-base font-bold text-neutral-900 font-heading">Pilih kamar</h1>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                Harga per orang
+                {seatSisa > 0 && (
+                  <>
+                    {' · '}
+                    {/* Label kelangkaan kursi: >=20 terbatas, <20 hampir habis, <10 jumlah pasti. */}
+                    <span className="font-semibold text-danger-600">
+                      {seatSisa < 10 ? `Sisa ${seatSisa} seat lagi!` : seatSisa < 20 ? 'Seat hampir habis!' : 'Seat terbatas!'}
+                    </span>
+                  </>
+                )}
               </p>
             </div>
 
-            {/* List Room Cards */}
-            <div className="space-y-3 pt-1">
-                {/* QUAD */}
-                <div className="relative">
-                  <div className="absolute -top-2.5 left-4 z-10">
-                    <span className="bg-emerald-600 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-2xs">
-                      PALING HEMAT
-                    </span>
-                  </div>
-                  <div className={`p-4 rounded-2xl transition-all flex items-center justify-between gap-3 ${
-                    counts.quad > 0
-                      ? 'bg-[#F0FDF4] border-2 border-emerald-400'
-                      : 'bg-white border border-neutral-200 hover:border-neutral-300'
-                  }`}>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-neutral-900 text-sm sm:text-base">QUAD</span>
-                        <span className="text-xs text-neutral-400 font-normal">(Sekamar Ber-4)</span>
+            {/* Daftar kamar: baris dengan garis pemisah, tanpa kartu */}
+            <ul className="divide-y divide-neutral-100">
+              {[
+                { key: 'quad', nama: 'Quad', ket: 'Sekamar 4 orang', harga: priceQuad, tag: 'Paling hemat', bisaTambah: totalReguler < seatSisa, hemat: hematQuad, coret: hematQuad > 0 ? schedule?.harga_coret : null },
+                { key: 'triple', nama: 'Triple', ket: 'Sekamar 3 orang', harga: priceTriple, bisaTambah: totalReguler < seatSisa },
+                { key: 'double', nama: 'Double', ket: 'Sekamar 2 orang', harga: priceDouble, bisaTambah: totalReguler < seatSisa },
+                { key: 'infant', nama: 'Infant', ket: 'Bayi di bawah 2 tahun', harga: infantAvailable ? priceInfant : null, bisaTambah: infantAvailable },
+              ].map((r) => {
+                const jumlah = counts[r.key];
+                const tidakTersedia = r.key === 'infant' && !infantAvailable;
+                return (
+                  <li key={r.key} className="flex items-center justify-between gap-3 py-3.5">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-neutral-900">
+                        {r.nama}
+                        {r.tag && <span className="ml-2 text-xs font-medium text-emerald-700">{r.tag}</span>}
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        {r.ket} · {tidakTersedia ? 'belum tersedia, hubungi admin' : (
+                          <span className="font-semibold text-neutral-900 whitespace-nowrap">{formatRp(r.harga)}</span>
+                        )}
+                      </p>
+                      {r.hemat > 0 && (
+                        <>
+                          <p className="text-xs text-neutral-400 line-through whitespace-nowrap">{formatRp(r.coret)}</p>
+                          <p className="text-xs font-medium text-emerald-700">
+                            Hemat {r.hemat % 1000000 === 0 ? `Rp${r.hemat / 1000000} jt` : formatRp(r.hemat)}
+                            {schedule?.promo_until
+                              ? ` s.d. ${new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(`${String(schedule.promo_until).slice(0, 10)}T00:00:00+07:00`))}`
+                              : ''}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    {!tidakTersedia && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => updateCount(r.key, -1)}
+                          aria-label={`Kurangi jamaah ${r.nama}`}
+                          disabled={jumlah <= 0}
+                          className="relative p-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:border-neutral-100 disabled:text-neutral-300 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer after:absolute after:-inset-1.5"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                            <path strokeLinecap="round" d="M5 12h14" />
+                          </svg>
+                        </button>
+                        <span aria-live="polite" className={`w-6 text-center text-sm font-semibold tabular-nums ${jumlah > 0 ? 'text-brand' : 'text-neutral-500'}`}>{jumlah}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateCount(r.key, 1)}
+                          aria-label={`Tambah jamaah ${r.nama}`}
+                          disabled={!r.bisaTambah}
+                          className="relative p-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:border-neutral-100 disabled:text-neutral-300 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer after:absolute after:-inset-1.5"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                            <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+                          </svg>
+                        </button>
                       </div>
-                      <div className="text-sm font-bold text-neutral-900 mt-0.5">
-                        {formatRp(priceQuad)} <span className="text-xs text-neutral-400 font-normal">/ pax</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => updateCount('quad', -1)}
-                      aria-label="Kurangi jamaah Quad"
-                        disabled={counts.quad <= 0}
-                        className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <span className="w-5 text-center font-bold text-sm text-neutral-900">{counts.quad}</span>
-                      <button
-                        type="button"
-                        onClick={() => updateCount('quad', 1)}
-                      aria-label="Tambah jamaah Quad"
-                      disabled={totalReguler >= seatSisa}
-                        className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* TRIPLE */}
-                <div className={`p-4 rounded-2xl transition-all flex items-center justify-between gap-3 ${
-                  counts.triple > 0
-                    ? 'bg-[#F0FDF4] border-2 border-emerald-400'
-                    : 'bg-white border border-neutral-200 hover:border-neutral-300'
-                }`}>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-neutral-900 text-sm sm:text-base">TRIPLE</span>
-                      <span className="text-xs text-neutral-400 font-normal">(Sekamar Ber-3)</span>
-                    </div>
-                    <div className="text-sm font-bold text-neutral-900 mt-0.5">
-                      {formatRp(priceTriple)} <span className="text-xs text-neutral-400 font-normal">/ pax</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => updateCount('triple', -1)}
-                      aria-label="Kurangi jamaah Triple"
-                      disabled={counts.triple <= 0}
-                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <span className="w-5 text-center font-bold text-sm text-neutral-900">{counts.triple}</span>
-                    <button
-                      type="button"
-                      onClick={() => updateCount('triple', 1)}
-                      aria-label="Tambah jamaah Triple"
-                      disabled={totalReguler >= seatSisa}
-                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                {/* DOUBLE */}
-                <div className={`p-4 rounded-2xl transition-all flex items-center justify-between gap-3 ${
-                  counts.double > 0
-                    ? 'bg-[#F0FDF4] border-2 border-emerald-400'
-                    : 'bg-white border border-neutral-200 hover:border-neutral-300'
-                }`}>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-neutral-900 text-sm sm:text-base">DOUBLE</span>
-                      <span className="text-xs text-neutral-400 font-normal">(Sekamar Ber-2)</span>
-                    </div>
-                    <div className="text-sm font-bold text-neutral-900 mt-0.5">
-                      {formatRp(priceDouble)} <span className="text-xs text-neutral-400 font-normal">/ pax</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => updateCount('double', -1)}
-                      aria-label="Kurangi jamaah Double"
-                      disabled={counts.double <= 0}
-                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <span className="w-5 text-center font-bold text-sm text-neutral-900">{counts.double}</span>
-                    <button
-                      type="button"
-                      onClick={() => updateCount('double', 1)}
-                      aria-label="Tambah jamaah Double"
-                      disabled={totalReguler >= seatSisa}
-                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                {/* INFANT */}
-                <div className={`p-4 rounded-2xl transition-all flex items-center justify-between gap-3 ${
-                  counts.infant > 0
-                    ? 'bg-[#F0FDF4] border-2 border-emerald-400'
-                    : 'bg-white border border-neutral-200 hover:border-neutral-300'
-                }`}>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-neutral-900 text-sm sm:text-base">INFANT</span>
-                      <span className="text-xs text-neutral-400 font-normal">(Bayi &lt; 2 Tahun)</span>
-                    </div>
-                    <div className="text-sm font-bold text-neutral-900 mt-0.5">
-                      {infantAvailable ? formatRp(priceInfant) : 'Belum tersedia - hubungi admin'}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => updateCount('infant', -1)}
-                      aria-label="Kurangi jamaah Infant"
-                      disabled={counts.infant <= 0}
-                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <span className="w-5 text-center font-bold text-sm text-neutral-900">{counts.infant}</span>
-                    <button
-                      type="button"
-                      onClick={() => updateCount('infant', 1)}
-                      aria-label="Tambah jamaah Infant"
-                      disabled={!infantAvailable}
-                      className="w-11 h-11 rounded-lg bg-white text-neutral-700 font-bold flex items-center justify-center shadow-xs hover:bg-neutral-50 transition-all cursor-pointer"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
 
               {(!pricingReady || !brandMatches || seatSisa <= 0) && <p role="alert" className="p-3 text-danger-700">{seatSisa <= 0 ? 'Kuota paket penuh. Hubungi admin untuk alternatif.' : 'Konfigurasi paket belum tersedia. Muat ulang atau hubungi admin.'}</p>}
               {/* Sticky Bottom Action Bar */}
-              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white/95 backdrop-blur-md border-t border-x border-[#DDE2EC] px-4 py-3 shadow-lg flex items-center justify-between gap-3">
+              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white border-t border-neutral-100 px-4 py-3 flex items-center justify-between gap-3">
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] text-neutral-500 font-medium truncate">
+                  <span className="text-xs text-neutral-500 truncate">
                     {totalPax > 0 ? (
                       <>
-                        {totalReguler > 0 ? `Total ${totalReguler} Pax Jamaah` : ''}
-                        {counts.infant > 0 ? `${totalReguler > 0 ? ' + ' : 'Total '}${counts.infant} Infant` : ''}
+                        {totalReguler > 0 ? `${totalReguler} jamaah` : ''}
+                        {counts.infant > 0 ? `${totalReguler > 0 ? ' + ' : 'Total '}${counts.infant} infant` : ''}
                       </>
                     ) : (
-                      'Pilih Kamar'
+                      'Belum ada kamar dipilih'
                     )}
                   </span>
                   <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-[17px] font-black text-neutral-900 leading-none tracking-tight">
+                    <span className="text-lg font-bold text-neutral-900 leading-none">
                       {formatRp(totalPrice)}
                     </span>
                   </div>
@@ -1264,7 +1240,7 @@ export default function BookingWizard({
                   type="button"
                   onClick={goToStep2}
                   disabled={totalReguler <= 0 || totalReguler > seatSisa || !pricingReady || !brandMatches}
-                  className="h-[42px] px-5 flex items-center justify-center gap-1.5 rounded-xl bg-brand text-white hover:brightness-110 active:scale-95 transition-all text-[12px] font-bold shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0 cursor-pointer"
+                  className="px-5 py-3 flex items-center justify-center gap-1.5 rounded-xl bg-brand text-white hover:brightness-110 active:scale-95 transition-all text-sm font-semibold disabled:opacity-40 disabled:pointer-events-none shrink-0 cursor-pointer"
                 >
                   <span>Isi Data Jamaah</span>
                   <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -1278,39 +1254,29 @@ export default function BookingWizard({
           {/* ─── STEP 2: DATA LENGKAP JAMAAH ─── */}
           {step === 2 && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              {/* Mini Package Summary Chip */}
-              <div className="p-3 rounded-2xl bg-neutral-50/90 border border-neutral-200/80 flex items-center justify-between gap-2 shadow-2xs">
-                <div className="min-w-0">
-                  <span className="font-bold text-neutral-900 truncate block text-[12px]">
-                    {schedule?.jadwal_nama}
-                  </span>
-                  <span className="text-[11px] text-neutral-500">
-                    {totalReguler} Jamaah{counts.infant > 0 ? ` + ${counts.infant} Infant` : ''} • Total: {formatRp(totalPrice)}
-                  </span>
-                </div>
-                <span className="text-[10.5px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full shrink-0">
-                  {formatDate(schedule?.berangkat_tanggal)}
-                </span>
-              </div>
 
               <div>
-                <h1 className="text-[16px] sm:text-[17px] font-bold text-neutral-900 font-heading tracking-tight">
+                <h1 className="text-base font-bold text-neutral-900 font-heading">
                   Data Jamaah
                 </h1>
-                <p className="text-[11.5px] text-neutral-500 mt-0.5 font-normal">
+                <p className="text-xs text-neutral-500 mt-0.5">
                   Isi data jamaah sesuai identitas resmi KTP/Paspor.
                 </p>
               </div>
 
               {/* Section Jamaah Utama */}
-              <div id="section-jamaah-utama" className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
-                <div className="pb-2 border-b border-neutral-100">
+              <div id="section-jamaah-utama" className="rounded-2xl bg-neutral-50 p-4 space-y-3.5">
+                <div className="flex items-start gap-3">
+                  <span className="w-8 h-8 rounded-full bg-brand-light text-brand flex items-center justify-center shrink-0" aria-hidden="true"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></span>
+                  <div>
                   <h3 className="font-bold text-neutral-800 text-sm">
-                    Jamaah Utama
+                    {agenMode ? 'Penanggung jawab rombongan' : 'Data Anda'}
                   </h3>
                   <p className="text-xs text-neutral-500 mt-0.5">
-                    Penanggung jawab booking dan pemegang akun Portal Jamaah.
-                  </p>
+                    {agenMode
+                      ? 'Ikut berangkat dan menjadi kontak utama booking ini.'
+                      : 'Anda ikut berangkat. Nomor WhatsApp dipakai untuk akun Portal Jamaah.'}
+                  </p></div>
                 </div>
 
                 {agenMode && (
@@ -1328,7 +1294,7 @@ export default function BookingWizard({
                           setPicGender(j.jenis_kelamin || 'L');
                           setPicPhone('');
                         })}
-                        <p className="text-[11px] text-neutral-500 leading-relaxed">
+                        <p className="text-xs text-neutral-500 leading-relaxed">
                           Jamaah baru tercatat sebagai jamaah Anda. Nomor yang sudah terdaftar atas nama jamaah lain tidak bisa dipakai.
                         </p>
                       </div>
@@ -1339,7 +1305,7 @@ export default function BookingWizard({
                 <>
 
                 {loggedInUser && (
-                  <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold text-xs">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -1349,11 +1315,11 @@ export default function BookingWizard({
                       <div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs font-bold text-neutral-900">{loggedInUser.nama_lengkap}</span>
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white text-neutral-600 border border-neutral-200">
+                          <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-white text-neutral-600 border border-neutral-200">
                             {loggedInUser.id_jamaah || 'Akun Aktif'}
                           </span>
                         </div>
-                        <p className="text-[11px] text-emerald-800 mt-0.5">
+                        <p className="text-xs text-emerald-800 mt-0.5">
                           Terhubung ke akun Portal Jamaah Anda.
                         </p>
                       </div>
@@ -1361,7 +1327,7 @@ export default function BookingWizard({
                     <button
                       type="button"
                       onClick={() => setShowLogoutModal(true)}
-                      className="text-[11px] font-semibold text-neutral-500 hover:text-neutral-800 underline transition-colors shrink-0 cursor-pointer"
+                      className="text-xs font-semibold text-neutral-500 hover:text-neutral-800 underline transition-colors shrink-0 cursor-pointer"
                     >
                       Bukan Anda? Keluar
                     </button>
@@ -1377,7 +1343,7 @@ export default function BookingWizard({
                     value={picNama}
                     onChange={(e) => setPicNama(e.target.value)}
                     placeholder="Contoh: Muhammad Ahmad"
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                    className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white"
                   />
                 </div>
 
@@ -1401,12 +1367,12 @@ export default function BookingWizard({
                       }}
                       onBlur={() => !loggedInUser && !agenMode && checkPhone(picPhone)}
                       placeholder="08123456789"
-                      className={`w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand font-mono ${
+                      className={`w-full h-11 px-3.5 text-sm rounded-lg input-brand font-mono ${
                         loggedInUser ? 'bg-neutral-100 text-neutral-600 cursor-not-allowed pr-28' : 'bg-white'
                       }`}
                     />
                     {loggedInUser && (
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
@@ -1415,7 +1381,7 @@ export default function BookingWizard({
                     )}
                   </div>
                   {loggedInUser && (
-                    <p className="text-[11px] text-neutral-400 mt-1">
+                    <p className="text-xs text-neutral-400 mt-1">
                       Nomor akun terkunci agar pemesanan terhubung ke akun Anda.
                     </p>
                   )}
@@ -1440,7 +1406,7 @@ export default function BookingWizard({
                     value={picEmail}
                     onChange={(e) => setPicEmail(e.target.value)}
                     placeholder="Misal: budi@gmail.com"
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                    className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white"
                   />
                 </div>
                 </>
@@ -1464,7 +1430,7 @@ export default function BookingWizard({
                       <h4 className="font-bold text-neutral-800 text-xs sm:text-sm">
                         Buat PIN Akun Portal Jamaah
                       </h4>
-                      <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">
+                      <p className="text-xs text-neutral-500 mt-0.5 leading-relaxed">
                         Akses informasi perjalanan, pembayaran, visa, tiket, manasik, dan persiapan umroh Anda dalam satu tempat.
                       </p>
                     </div>
@@ -1481,7 +1447,7 @@ export default function BookingWizard({
                             value={picPin}
                             onChange={(e) => setPicPin(e.target.value.replace(/\D/g, ''))}
                             placeholder="Masukkan 6 digit angka"
-                            className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10"
+                            className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10"
                           />
                           <button
                             type="button"
@@ -1522,7 +1488,7 @@ export default function BookingWizard({
                                   value={picPinConfirm}
                                   onChange={(e) => setPicPinConfirm(e.target.value.replace(/\D/g, ''))}
                                   placeholder="Ulangi 6 digit PIN"
-                                  className={`w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10 ${
+                                  className={`w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10 ${
                                     isMatch
                                       ? 'border-emerald-500 ring-1 ring-emerald-500'
                                       : isMismatch
@@ -1552,7 +1518,7 @@ export default function BookingWizard({
                           })()}
                         </div>
                         {picPin.length === 6 && picPinConfirm.length === 6 && picPin === picPinConfirm && (
-                          <p className="text-[10.5px] text-emerald-600 font-medium mt-1 flex items-center gap-1 animate-in fade-in duration-100">
+                          <p className="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1 animate-in fade-in duration-100">
                             <svg className="w-3.5 h-3.5 text-emerald-600 stroke-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
@@ -1560,7 +1526,7 @@ export default function BookingWizard({
                           </p>
                         )}
                         {picPinConfirm.length === 6 && picPin !== picPinConfirm && (
-                          <p className="text-[10.5px] text-red-600 font-normal mt-1 flex items-center gap-1 animate-in fade-in duration-100">
+                          <p className="text-xs text-red-600 font-normal mt-1 flex items-center gap-1 animate-in fade-in duration-100">
                             <svg className="w-3.5 h-3.5 text-red-500 stroke-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -1586,7 +1552,7 @@ export default function BookingWizard({
                           value={picPinVerify}
                           onChange={(e) => setPicPinVerify(e.target.value.replace(/\D/g, ''))}
                           placeholder="Masukkan 6 digit angka"
-                          className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10"
+                          className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white font-mono tracking-widest pr-10"
                         />
                         <button
                           type="button"
@@ -1607,7 +1573,7 @@ export default function BookingWizard({
                         </button>
                       </div>
                     </div>
-                    <p className="text-[11px] text-neutral-500 leading-relaxed">
+                    <p className="text-xs text-neutral-500 leading-relaxed">
                       Nomor ini sudah terdaftar. Masukkan PIN akun Anda untuk melanjutkan. Lupa PIN? Hubungi admin travel atau gunakan nomor lain.
                     </p>
                   </div>
@@ -1634,19 +1600,20 @@ export default function BookingWizard({
                   </div>
                 )}
 
-                {totalReguler > 1 && (
+                {/* Hanya ditanyakan bila tipe kamar lebih dari satu; bila satu tipe, diisi otomatis. */}
+                {[counts.quad, counts.triple, counts.double].filter((n) => n > 0).length > 1 && (
                   <div>
                     <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                      Pilih Kamar <span className="text-red-500">*</span>
+                      {agenMode ? 'Kamar penanggung jawab' : 'Kamar Anda'} <span className="text-red-500">*</span>
                     </label>
                     <CustomSelect
                       value={picRoomType}
                       onChange={(val) => handleRoomTypeChange(val)}
-                      placeholder="-- Pilih Tipe Kamar --"
+                      placeholder="Pilih tipe kamar"
                       options={[
-                        ...(counts.quad > 0 ? [{ value: 'Quad', label: 'QUAD (Sekamar ber-4)' }] : []),
-                        ...(counts.triple > 0 ? [{ value: 'Triple', label: 'TRIPLE (Sekamar ber-3)' }] : []),
-                        ...(counts.double > 0 ? [{ value: 'Double', label: 'DOUBLE (Sekamar ber-2)' }] : []),
+                        ...(counts.quad > 0 ? [{ value: 'Quad', label: 'Quad · sekamar 4 orang' }] : []),
+                        ...(counts.triple > 0 ? [{ value: 'Triple', label: 'Triple · sekamar 3 orang' }] : []),
+                        ...(counts.double > 0 ? [{ value: 'Double', label: 'Double · sekamar 2 orang' }] : []),
                       ]}
                     />
                   </div>
@@ -1655,44 +1622,28 @@ export default function BookingWizard({
 
               {/* Grup Kamar QUAD */}
               {counts.quad > 0 && (
-                <div className="space-y-3">
-                  <span className="bg-neutral-900 text-white text-[11px] font-bold px-3 py-1 rounded-md inline-block uppercase">
-                    QUAD (Sekamar ber-4)
-                  </span>
+                <div className="rounded-2xl bg-neutral-50 p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-brand-light text-brand flex items-center justify-center shrink-0" aria-hidden="true"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v11m0-4h18m0 4v-6a3 3 0 00-3-3h-7v6M7 11.5a2 2 0 100-4 2 2 0 000 4z" /></svg></span>
+                    <div>
+                      <p className="text-sm font-bold text-neutral-800">Kamar Quad</p>
+                      <p className="text-xs text-neutral-500">Sekamar 4 orang</p>
+                    </div>
+                  </div>
 
                   {Array.from({ length: counts.quad }).map((_, idx) => {
                     const isPic = picRoomType === 'Quad' && picSlotIndex === idx;
                     return (
-                      <div key={`q_${idx}`} className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
-                        <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
-                          <span className="font-bold text-neutral-800 text-sm">
-                            Jamaah {idx + 1}
-                          </span>
-                          {isPic && (
-                            <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200">
-                              JAMAAH UTAMA
-                            </span>
-                          )}
-                        </div>
-
+                      <div key={`q_${idx}`} className="pt-4 border-t border-neutral-200/70 space-y-3.5">
                         {isPic ? (
-                          <div>
-                            <div className={`text-sm font-bold ${picNama.trim() ? 'text-neutral-900' : 'text-neutral-400 font-normal italic'}`}>
-                              {picNama.trim() || 'Belum diisi'}
-                            </div>
-                            <p className="text-xs text-neutral-500 mt-1">
-                              Data diisi di bagian Jamaah Utama di atas.{' '}
-                              <button
-                                type="button"
-                                onClick={() => document.getElementById('section-jamaah-utama')?.scrollIntoView({ behavior: 'smooth' })}
-                                className="font-semibold text-neutral-800 underline hover:text-neutral-950 cursor-pointer"
-                              >
-                                Ubah di Jamaah Utama
-                              </button>
-                            </p>
-                          </div>
+                          <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-neutral-900">
+                            <span className="font-semibold">1. {picNama.trim() || 'Nama belum diisi'}</span>{' '}
+                            <span className="text-neutral-500">({agenMode ? 'penanggung jawab' : 'Anda'})</span>
+                          </p>
                         ) : (
                           <>
+                            <span className="block font-bold text-neutral-800 text-sm">Jamaah {nomorJamaah('Quad', idx)}</span>
+
                             {agenMode && renderSlotJamaahSaya(jamaahQuad, setJamaahQuad, idx)}
                             {!jamaahQuad[idx]?.jamaah_id && (
                             <>
@@ -1709,7 +1660,7 @@ export default function BookingWizard({
                                   setJamaahQuad(arr);
                                 }}
                                 placeholder="Contoh: Muhammad Ahmad"
-                                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                                className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white"
                               />
                             </div>
 
@@ -1742,7 +1693,7 @@ export default function BookingWizard({
                                     setJamaahQuad(arr);
                                   }}
                                   placeholder="08123456789"
-                                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
+                                  className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white font-mono"
                                 />
                               </div>
                             </div>
@@ -1758,45 +1709,28 @@ export default function BookingWizard({
 
               {/* Grup Kamar TRIPLE */}
               {counts.triple > 0 && (
-                <div className="space-y-3">
-                  <span className="bg-neutral-900 text-white text-[11px] font-bold px-3 py-1 rounded-md inline-block uppercase">
-                    TRIPLE (Sekamar ber-3)
-                  </span>
+                <div className="rounded-2xl bg-neutral-50 p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-brand-light text-brand flex items-center justify-center shrink-0" aria-hidden="true"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v11m0-4h18m0 4v-6a3 3 0 00-3-3h-7v6M7 11.5a2 2 0 100-4 2 2 0 000 4z" /></svg></span>
+                    <div>
+                      <p className="text-sm font-bold text-neutral-800">Kamar Triple</p>
+                      <p className="text-xs text-neutral-500">Sekamar 3 orang</p>
+                    </div>
+                  </div>
 
                   {Array.from({ length: counts.triple }).map((_, idx) => {
                     const isPic = picRoomType === 'Triple' && picSlotIndex === idx;
-                    const paxNum = counts.quad + idx + 1;
                     return (
-                      <div key={`t_${idx}`} className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
-                        <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
-                          <span className="font-bold text-neutral-800 text-sm">
-                            Jamaah {paxNum}
-                          </span>
-                          {isPic && (
-                            <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200">
-                              JAMAAH UTAMA
-                            </span>
-                          )}
-                        </div>
-
+                      <div key={`t_${idx}`} className="pt-4 border-t border-neutral-200/70 space-y-3.5">
                         {isPic ? (
-                          <div>
-                            <div className={`text-sm font-bold ${picNama.trim() ? 'text-neutral-900' : 'text-neutral-400 font-normal italic'}`}>
-                              {picNama.trim() || 'Belum diisi'}
-                            </div>
-                            <p className="text-xs text-neutral-500 mt-1">
-                              Data diisi di bagian Jamaah Utama di atas.{' '}
-                              <button
-                                type="button"
-                                onClick={() => document.getElementById('section-jamaah-utama')?.scrollIntoView({ behavior: 'smooth' })}
-                                className="font-semibold text-neutral-800 underline hover:text-neutral-950 cursor-pointer"
-                              >
-                                Ubah di Jamaah Utama
-                              </button>
-                            </p>
-                          </div>
+                          <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-neutral-900">
+                            <span className="font-semibold">1. {picNama.trim() || 'Nama belum diisi'}</span>{' '}
+                            <span className="text-neutral-500">({agenMode ? 'penanggung jawab' : 'Anda'})</span>
+                          </p>
                         ) : (
                           <>
+                            <span className="block font-bold text-neutral-800 text-sm">Jamaah {nomorJamaah('Triple', idx)}</span>
+
                             {agenMode && renderSlotJamaahSaya(jamaahTriple, setJamaahTriple, idx)}
                             {!jamaahTriple[idx]?.jamaah_id && (
                             <>
@@ -1813,7 +1747,7 @@ export default function BookingWizard({
                                   setJamaahTriple(arr);
                                 }}
                                 placeholder="Contoh: Nama Lengkap"
-                                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                                className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white"
                               />
                             </div>
 
@@ -1846,7 +1780,7 @@ export default function BookingWizard({
                                     setJamaahTriple(arr);
                                   }}
                                   placeholder="08123456789"
-                                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
+                                  className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white font-mono"
                                 />
                               </div>
                             </div>
@@ -1862,45 +1796,28 @@ export default function BookingWizard({
 
               {/* Grup Kamar DOUBLE */}
               {counts.double > 0 && (
-                <div className="space-y-3">
-                  <span className="bg-neutral-900 text-white text-[11px] font-bold px-3 py-1 rounded-md inline-block uppercase">
-                    DOUBLE (Sekamar ber-2)
-                  </span>
+                <div className="rounded-2xl bg-neutral-50 p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-brand-light text-brand flex items-center justify-center shrink-0" aria-hidden="true"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v11m0-4h18m0 4v-6a3 3 0 00-3-3h-7v6M7 11.5a2 2 0 100-4 2 2 0 000 4z" /></svg></span>
+                    <div>
+                      <p className="text-sm font-bold text-neutral-800">Kamar Double</p>
+                      <p className="text-xs text-neutral-500">Sekamar 2 orang</p>
+                    </div>
+                  </div>
 
                   {Array.from({ length: counts.double }).map((_, idx) => {
                     const isPic = picRoomType === 'Double' && picSlotIndex === idx;
-                    const paxNum = counts.quad + counts.triple + idx + 1;
                     return (
-                      <div key={`d_${idx}`} className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
-                        <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
-                          <span className="font-bold text-neutral-800 text-sm">
-                            Jamaah {paxNum}
-                          </span>
-                          {isPic && (
-                            <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200">
-                              JAMAAH UTAMA
-                            </span>
-                          )}
-                        </div>
-
+                      <div key={`d_${idx}`} className="pt-4 border-t border-neutral-200/70 space-y-3.5">
                         {isPic ? (
-                          <div>
-                            <div className={`text-sm font-bold ${picNama.trim() ? 'text-neutral-900' : 'text-neutral-400 font-normal italic'}`}>
-                              {picNama.trim() || 'Belum diisi'}
-                            </div>
-                            <p className="text-xs text-neutral-500 mt-1">
-                              Data diisi di bagian Jamaah Utama di atas.{' '}
-                              <button
-                                type="button"
-                                onClick={() => document.getElementById('section-jamaah-utama')?.scrollIntoView({ behavior: 'smooth' })}
-                                className="font-semibold text-neutral-800 underline hover:text-neutral-950 cursor-pointer"
-                              >
-                                Ubah di Jamaah Utama
-                              </button>
-                            </p>
-                          </div>
+                          <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-neutral-900">
+                            <span className="font-semibold">1. {picNama.trim() || 'Nama belum diisi'}</span>{' '}
+                            <span className="text-neutral-500">({agenMode ? 'penanggung jawab' : 'Anda'})</span>
+                          </p>
                         ) : (
                           <>
+                            <span className="block font-bold text-neutral-800 text-sm">Jamaah {nomorJamaah('Double', idx)}</span>
+
                             {agenMode && renderSlotJamaahSaya(jamaahDouble, setJamaahDouble, idx)}
                             {!jamaahDouble[idx]?.jamaah_id && (
                             <>
@@ -1917,7 +1834,7 @@ export default function BookingWizard({
                                   setJamaahDouble(arr);
                                 }}
                                 placeholder="Contoh: Nama Lengkap"
-                                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                                className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white"
                               />
                             </div>
 
@@ -1950,7 +1867,7 @@ export default function BookingWizard({
                                     setJamaahDouble(arr);
                                   }}
                                   placeholder="08123456789"
-                                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white font-mono"
+                                  className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white font-mono"
                                 />
                               </div>
                             </div>
@@ -1966,10 +1883,14 @@ export default function BookingWizard({
 
               {/* Grup Kamar INFANT */}
               {counts.infant > 0 && (
-                <div className="space-y-3">
-                  <span className="bg-neutral-900 text-white text-[11px] font-bold px-3 py-1 rounded-md inline-block uppercase">
-                    INFANT (Bayi &lt; 2 Tahun)
-                  </span>
+                <div className="rounded-2xl bg-neutral-50 p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-brand-light text-brand flex items-center justify-center shrink-0" aria-hidden="true"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>
+                    <div>
+                      <p className="text-sm font-bold text-neutral-800">Bayi</p>
+                      <p className="text-xs text-neutral-500">Di bawah 2 tahun, tanpa kamar</p>
+                    </div>
+                  </div>
 
                   {Array.from({ length: counts.infant }).map((_, idx) => {
                     const depDate = schedule?.berangkat_tanggal || schedule?.tanggal_keberangkatan ? new Date(schedule.berangkat_tanggal || schedule.tanggal_keberangkatan) : new Date('2026-09-03');
@@ -1993,8 +1914,8 @@ export default function BookingWizard({
                     const todayDate = new Date().toISOString().split('T')[0];
 
                     return (
-                      <div key={`inf_${idx}`} className="bg-white rounded-2xl p-5 border border-neutral-200 space-y-3.5">
-                        <div className="pb-2 border-b border-neutral-100">
+                      <div key={`inf_${idx}`} className="pt-4 border-t border-neutral-200/70 space-y-3.5">
+                        <div>
                           <span className="font-bold text-neutral-800 text-sm">
                             Bayi {idx + 1}
                           </span>
@@ -2013,7 +1934,7 @@ export default function BookingWizard({
                               setJamaahInfant(arr);
                             }}
                             placeholder="Nama lengkap bayi sesuai akta/paspor"
-                            className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white"
+                            className="w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white"
                           />
                         </div>
 
@@ -2046,7 +1967,7 @@ export default function BookingWizard({
                                 arr[idx] = { ...arr[idx], tanggal_lahir: e.target.value };
                                 setJamaahInfant(arr);
                               }}
-                              className={`w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-lg input-brand bg-white ${
+                              className={`w-full h-11 px-3.5 text-sm rounded-lg input-brand bg-white ${
                                 isOverAge ? 'border-red-500 ring-1 ring-red-500' : ''
                               }`}
                             />
@@ -2054,7 +1975,7 @@ export default function BookingWizard({
                         </div>
 
                         {isOverAge && (
-                          <p className="text-[11px] text-red-600 font-normal leading-relaxed">
+                          <p className="text-xs text-red-600 font-normal leading-relaxed">
                             ⚠️ Usia bayi &ge; 2 tahun pada tanggal keberangkatan ({formatDate(schedule?.berangkat_tanggal)}). Silakan pilih kamar reguler.
                           </p>
                         )}
@@ -2065,11 +1986,11 @@ export default function BookingWizard({
               )}
 
               {/* Sticky Bottom Action Bar */}
-              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white/95 backdrop-blur-md border-t border-x border-[#DDE2EC] px-4 py-3 shadow-lg flex items-center gap-2.5">
+              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white border-t border-neutral-100 px-4 py-3 flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="h-[42px] px-4 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] transition-colors cursor-pointer shrink-0"
+                  className="px-4 py-3 rounded-xl font-semibold bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm transition-colors cursor-pointer shrink-0"
                 >
                   Kembali
                 </button>
@@ -2077,7 +1998,7 @@ export default function BookingWizard({
                   type="button"
                   onClick={goToStep3}
                   disabled={!picRoomType || (!agenMode && (phoneCheckStatus === 'idle' || phoneCheckStatus === 'checking' || phoneCheckStatus === 'error'))}
-                  className="btn-brand-cta flex-1 h-[42px] rounded-xl font-bold text-white text-[12px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none"
+                  className="btn-brand-cta flex-1 px-5 py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none"
                 >
                   <span>Lanjut Konfirmasi</span>
                   <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -2091,126 +2012,133 @@ export default function BookingWizard({
           {/* ─── STEP 3: KONFIRMASI PENDAFTARAN ─── */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              {/* Mini Package Summary Chip */}
-              <div className="p-3 rounded-2xl bg-neutral-50/90 border border-neutral-200/80 flex items-center justify-between gap-2 shadow-2xs">
-                <div className="min-w-0">
-                  <span className="font-bold text-neutral-900 truncate block text-[12px]">
-                    {schedule?.jadwal_nama}
-                  </span>
-                  <span className="text-[11px] text-neutral-500">
-                    {totalReguler} Jamaah • Total: {formatRp(totalPrice)}
-                  </span>
-                </div>
-                <span className="text-[10.5px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full shrink-0">
-                  {formatDate(schedule?.berangkat_tanggal)}
-                </span>
-              </div>
-
               <div>
-                <h1 className="text-[16px] sm:text-[17px] font-bold text-neutral-900 font-heading tracking-tight">
-                  Konfirmasi Booking
-                </h1>
-                <p className="text-[11.5px] text-neutral-500 mt-0.5 font-normal">
-                  Pastikan data dan rincian paket sudah benar sebelum melanjutkan.
-                </p>
+                <h1 className="text-base font-bold text-neutral-900 font-heading">Periksa pesanan</h1>
+                <p className="text-xs text-neutral-500 mt-0.5">Pastikan data dan rincian paket sudah benar sebelum memesan.</p>
               </div>
 
-              {/* Box 1: Info Paket */}
-              <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between pb-1">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
-                    NAMA PAKET
+              {/* Panel paket: hanya data yang tersedia, tanpa nilai cadangan palsu */}
+              <div className="rounded-2xl bg-neutral-50 p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-full bg-brand-light text-brand flex items-center justify-center shrink-0" aria-hidden="true">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                   </span>
-                  <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded uppercase">
-                    {schedule?.maskapai?.name || 'GARUDA INDONESIA'}
-                  </span>
-                </div>
-
-                <h3 className="font-heading font-bold text-neutral-900 text-base sm:text-lg">
-                  {schedule?.jadwal_nama || schedule?.package_name || 'Umroh Reguler Promo'}
-                </h3>
-
-                <div className="grid grid-cols-3 gap-3 pt-3 border-t border-neutral-100 text-xs">
-                  <div>
-                    <span className="text-[11px] text-neutral-400 block mb-0.5">Keberangkatan:</span>
-                    <span className="font-bold text-neutral-800">{formatDate(schedule?.berangkat_tanggal)}</span>
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-neutral-400 block mb-0.5">Kepulangan:</span>
-                    <span className="font-bold text-neutral-800">{formatDate(schedule?.pulang_tanggal || '2026-09-09')}</span>
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-neutral-400 block mb-0.5">Total Jamaah:</span>
-                    <span className="font-bold text-neutral-800">{totalPax} Orang</span>
+                  <div className="min-w-0">
+                    <p className="text-xs text-neutral-500">Paket</p>
+                    <p className="text-sm font-bold text-neutral-900">{schedule?.jadwal_nama || '-'}</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Box 2: Daftar Jamaah */}
-              <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xs overflow-hidden">
-                <div className="px-5 py-3 bg-neutral-50/70 border-b border-neutral-100">
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
-                    DAFTAR JAMAAH ({totalPax} ORANG)
-                  </span>
-                </div>
-
-                <div className="divide-y divide-neutral-100 text-xs sm:text-sm">
-                  {summaryJamaahList.map((j) => (
-                    <div key={j.num} className="p-4 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold shrink-0">
-                          {j.num}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="font-bold text-neutral-900 text-sm truncate">{j.nama}</div>
-                          <div className="text-[11px] text-neutral-400 mt-0.5">{j.sub}</div>
-                        </div>
-                      </div>
-                      <span className="font-bold text-neutral-900 text-sm shrink-0">
-                        {formatRp(j.price)}
-                      </span>
+                <dl className="space-y-2 text-sm">
+                  {[
+                    ['Berangkat', schedule?.berangkat_tanggal && formatDate(schedule.berangkat_tanggal)],
+                    ['Durasi', durationDays > 0 && `${durationDays} hari`],
+                    ['Maskapai', schedule?.maskapai?.name && `${schedule.maskapai.name} · ${schedule?.is_direct_flight ? 'Direct' : 'Transit'}`],
+                  ].filter(([, nilai]) => nilai).map(([label, nilai]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <dt className="text-neutral-500">{label}</dt>
+                      <dd className="font-medium text-neutral-900 text-right">{nilai}</dd>
                     </div>
                   ))}
-                </div>
-
-                <div className="px-5 py-3 bg-neutral-50/50 border-t border-neutral-100 text-xs text-neutral-500">
-                  <span>Akun Portal Jamaah untuk: </span>
-                  <strong className="text-neutral-800">{picNama}</strong>
-                </div>
+                </dl>
               </div>
 
-              {/* Box 4: Syarat & Ketentuan & Turnstile */}
-              <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-2xs space-y-4">
-                <label className="flex items-start gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={agree}
-                    onChange={(e) => setAgree(e.target.checked)}
-                    className="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-neutral-300 cursor-pointer"
-                  />
-                  <span className="text-xs text-neutral-600 leading-relaxed">
-                    Saya menyatakan data pendaftaran di atas sudah benar sesuai identitas KTP/Paspor dan menyetujui seluruh{' '}
-                    <a href="/ketentuan-booking" target="_blank" rel="noopener noreferrer" className="font-bold underline text-neutral-800 hover:text-black">
-                      Syarat &amp; Ketentuan
-                    </a>{' '}
-                    serta kebijakan pembatalan &amp; pelunasan yang berlaku.
+              {/* Panel jamaah + total */}
+              <div className="rounded-2xl bg-neutral-50 p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-full bg-brand-light text-brand flex items-center justify-center shrink-0" aria-hidden="true">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   </span>
-                </label>
+                  <p className="text-sm font-bold text-neutral-900">Jamaah ({totalPax} orang)</p>
+                </div>
 
-                {/* Cloudflare Turnstile (booking agen tidak butuh: endpoint sudah terautentikasi) */}
-                {!agenMode && (
-                  <div className="pt-2">
-                    <Turnstile ref={turnstileRef} onToken={setTurnstileToken} action="booking" />
-                  </div>
+                <ul className="divide-y divide-neutral-200/70">
+                  {summaryJamaahList.map((j) => (
+                    <li key={j.num} className="flex items-start justify-between gap-3 py-3 first:pt-0">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-neutral-900">{j.num}. {j.nama}</p>
+                        <p className="text-xs text-neutral-500">{j.sub.replace(/ • /g, ' · ')}</p>
+                      </div>
+                      <span className="text-sm font-semibold text-neutral-900 shrink-0 tabular-nums">{formatRp(j.price)}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="flex items-center justify-between gap-3 pt-3 border-t border-neutral-200">
+                  <span className="text-sm font-semibold text-neutral-900">Total</span>
+                  <span className="text-base font-bold text-neutral-900 tabular-nums">{formatRp(totalPrice)}</span>
+                </div>
+
+                {!agenMode && picNama && (
+                  <p className="text-xs text-neutral-500">Akun Portal Jamaah atas nama <span className="font-medium text-neutral-700">{picNama}</span>.</p>
                 )}
               </div>
 
+              {/* Persetujuan: tanpa kartu, checkbox lebih besar dengan area sentuh luas */}
+              <label className="flex items-start gap-3 py-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                  className="mt-0.5 w-5 h-5 shrink-0 rounded border-neutral-300 accent-brand cursor-pointer"
+                />
+                <span className="text-sm text-neutral-700 leading-relaxed">
+                  Data di atas sudah sesuai KTP/paspor, dan saya menyetujui{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); setShowTerms(true); }}
+                    className="font-semibold underline text-neutral-900 cursor-pointer"
+                  >
+                    Syarat &amp; Ketentuan
+                  </button>{' '}
+                  serta kebijakan pembatalan dan pelunasan.
+                </span>
+              </label>
+
+              {/* Cloudflare Turnstile (booking agen tidak butuh: endpoint sudah terautentikasi) */}
+              {!agenMode && (
+                <Turnstile ref={turnstileRef} onToken={setTurnstileToken} action="booking" />
+              )}
+
+              {/* Drawer syarat & ketentuan (bottom sheet): tidak berpindah halaman saat checkout */}
+              {showTerms && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-950/50 pt-16" onClick={() => setShowTerms(false)}>
+                  <section
+                    ref={termsRef}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="judul-ketentuan"
+                    tabIndex={-1}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full max-w-md max-h-full flex flex-col rounded-t-2xl bg-white shadow-xl animate-in slide-in-from-bottom duration-200"
+                  >
+                    <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3">
+                      <h2 id="judul-ketentuan" className="text-base font-bold text-neutral-900">Syarat &amp; Ketentuan</h2>
+                      <button type="button" onClick={() => setShowTerms(false)} aria-label="Tutup" className="p-2 -mr-2 rounded-xl text-neutral-500 hover:bg-neutral-100 cursor-pointer">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 text-sm text-neutral-700 leading-relaxed">
+                      <BookingTermsContent />
+                    </div>
+                    <div className="border-t border-neutral-100 px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => { setAgree(true); setShowTerms(false); }}
+                        className="w-full px-5 py-3 rounded-xl bg-brand text-white text-sm font-semibold cursor-pointer"
+                      >
+                        Saya setuju
+                      </button>
+                    </div>
+                  </section>
+                </div>
+              )}
+
               {/* Sticky Bottom Action Bar */}
-              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white/95 backdrop-blur-md border-t border-x border-[#DDE2EC] px-4 py-3 shadow-lg flex items-center gap-2.5">
+              <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-white border-t border-neutral-100 px-4 py-3 flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="h-[42px] px-4 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] transition-colors cursor-pointer shrink-0"
+                  className="px-4 py-3 rounded-xl font-semibold bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm transition-colors cursor-pointer shrink-0"
                 >
                   Kembali
                 </button>
@@ -2218,10 +2146,10 @@ export default function BookingWizard({
                   type="button"
                   onClick={handleSubmitBooking}
                   disabled={loading || !agree || (!agenMode && !turnstileToken)}
-                  className="btn-brand-cta flex-1 h-[42px] rounded-xl font-bold text-white text-[12px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none"
+                  className="btn-brand-cta flex-1 px-5 py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  <span>{loading ? 'Memproses Booking...' : 'Konfirmasi Pemesanan'}</span>
-                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <span>{loading ? 'Memproses...' : 'Konfirmasi Pemesanan'}</span>
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </button>
@@ -2330,7 +2258,7 @@ export default function BookingWizard({
                     : (travelAccounts && travelAccounts.length > 0 ? travelAccounts : activeAccounts)
                   ).map((acc, i) => {
                     const logoUrl = acc.logo_url 
-                      ? (acc.logo_url.startsWith('http') ? acc.logo_url : `${apiBaseUrl}${acc.logo_url}`)
+                      ? mediaUrl(acc.logo_url)
                       : null;
 
                     return (

@@ -1,4 +1,5 @@
 import PackageLoadError from '@/components/ui/PackageLoadError';
+import { mediaUrl } from '@/lib/mediaUrl';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { getPublicSchedules, getPublicBankAccounts } from '@/lib/api';
@@ -103,9 +104,8 @@ export default async function HomePage() {
   const featuredSchedules = sortedSchedules.slice(0, 6);
   const totalSchedulesCount = schedules.length;
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9090';
-  const fullLogoUrl = brandLogo && brandLogo.startsWith('/') ? `${apiBaseUrl}${brandLogo}` : brandLogo;
-  const fullIconUrl = brandIcon && brandIcon.startsWith('/') ? `${apiBaseUrl}${brandIcon}` : brandIcon;
+  const fullLogoUrl = mediaUrl(brandLogo);
+  const fullIconUrl = mediaUrl(brandIcon);
 
   return (
     <main className="min-h-screen bg-[#EEF2F6] pb-20 md:pb-6">
@@ -122,10 +122,10 @@ export default async function HomePage() {
               <img
                 src={fullIconUrl}
                 alt={`${brandName} Icon`}
-                className="w-[32px] h-[32px] rounded-[10px] object-contain bg-white border border-neutral-200/80 shadow-2xs shrink-0"
+                className="w-[32px] h-[32px] rounded-lg object-contain bg-white border border-neutral-200/80 shadow-2xs shrink-0"
               />
             ) : (
-              <div className="w-[32px] h-[32px] flex justify-center items-center bg-brand text-white rounded-[10px] shadow-2xs font-extrabold text-[15px] shrink-0">
+              <div className="w-[32px] h-[32px] flex justify-center items-center bg-brand text-white rounded-lg shadow-2xs font-extrabold text-[15px] shrink-0">
                 {brandName ? brandName.charAt(0) : 'A'}
               </div>
             )}

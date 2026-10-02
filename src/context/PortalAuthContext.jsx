@@ -54,7 +54,7 @@ export function PortalAuthProvider({ children }) {
   };
   const logout = async () => { await portalLogout(); clearSession(); };
   return <PortalAuthContext.Provider value={{ jamaah, accessToken, isLoading, login, logout }}>
-    {authError ? <div role="alert" className="p-6 space-y-4 text-sm"><p>{authError}</p><button type="button" className="min-h-11 px-4 border rounded-xl" onClick={() => setAttempt(n => n + 1)}>Coba lagi</button></div> : children}
+    {authError ? <div role="alert" className="p-6 space-y-4 text-sm"><p>{authError}</p><button type="button" className="px-4 py-2 text-sm border rounded-xl" onClick={() => setAttempt(n => n + 1)}>Coba lagi</button></div> : children}
   </PortalAuthContext.Provider>;
 }
 export function usePortalAuth() { return useContext(PortalAuthContext); }

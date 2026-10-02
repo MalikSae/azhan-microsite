@@ -166,7 +166,7 @@ export default function HomeAppClient({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-xs text-neutral-500 font-medium">{rawList.length === 0 ? 'Jadwal paket sedang disiapkan.' : 'Tidak ada paket yang sesuai dengan pilihan Anda.'}</p>
-            {rawList.length === 0 && <a href={`https://wa.me/${brandWhatsapp}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-brand">Tanya jadwal via WhatsApp</a>}
+            {rawList.length === 0 && <a href={`https://wa.me/${brandWhatsapp}`} className="inline-flex items-center py-2 text-sm font-semibold text-brand">Tanya jadwal via WhatsApp</a>}
             {hasFilters && <button type="button" onClick={handleReset}
               className="text-xs font-bold text-brand hover:underline cursor-pointer"
             >
